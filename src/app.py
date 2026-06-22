@@ -1,0 +1,45 @@
+# Importações do projeto
+from config.config import init_config
+
+# Importações de bibliotecas
+from flask_login import login_required, current_user
+from flask import Flask, render_template
+
+# Instancia a aplicação
+app = Flask(__name__, template_folder='templates', static_folder='static')
+
+# Registra as blueprints
+app.register_blueprint(cadastro_processos, url_prefix='/cadastro_processos')
+app.register_blueprint(asset_allocation, url_prefix='/asset_allocation')
+app.register_blueprint(cadastro_ativos, url_prefix='/cadastro_ativos')
+app.register_blueprint(task_monitor, url_prefix='/task_monitor')
+app.register_blueprint(login_blueprint, url_prefix='/login')
+app.register_blueprint(boletador, url_prefix='/boletador')
+app.register_blueprint(quant_hub, url_prefix='/quant_hub')
+app.register_blueprint(snapshot, url_prefix='/snapshot')
+
+
+# Rota inicial da aplicação
+@app.route('/')
+@login_required
+def home_page():
+    return render_template('home.html')
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+# Context processor para adicionar variáveis globais
+@app.context_processor
+def inject_user():
+    if current_user.is_authenticated:
+        return {'username': current_user.id, 'grupo': current_user.grupo}
+    return {}
+
+# Inicia a aplicação
+if __name__ == '__main__':
+    config = init_config()
+    app.secret_key = config['secret_key']
+    app.config['BACKEND_URL'] = config['backend_url']
+    login_manager.init_app(app)
+    app.run(debug=True, host='0.0.0.0', port=config['porta'])
