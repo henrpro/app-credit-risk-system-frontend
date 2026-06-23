@@ -2,121 +2,132 @@
 <html lang="en">
 
 <head>
-  <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
-  <title>{% block title %}Itaú BBA - Credit Risk{% endblock %}</title>
-  <meta content="" name="description">
-  <meta content="" name="keywords">
+    <title>{% block title %}Itaú BBA - Credit Risk{% endblock %}</title>
+    <meta content="" name="description">
+    <meta content="" name="keywords">
 
-  <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
-  <link href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/global.css') }}" rel="stylesheet">
 
-  <link href="{{ url_for('static', filename='css/global.css') }}" rel="stylesheet">
-
-  {% block extra_css %}{% endblock %}
-
-  <script>
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    document.documentElement.setAttribute('data-theme', savedTheme);
-
-    if (localStorage.getItem('privacy') === 'true') {
-      document.documentElement.classList.add('privacy-mode');
-    }
-  </script>
+    {% block extra_css %}{% endblock %}
 </head>
 
 <body>
 
-  <!-- ======= Header ======= -->
-  <header id="header" class="header fixed-top d-flex align-items-center">
-    <div class="logo d-flex align-items-center">
-      <img src="{{ url_for('login_blueprint.static', filename='img/logo_preto.png') }}" alt="Itaú" class="logo-light-theme" style="height: 52px; margin-right: 20px;">
-      <img src="{{ url_for('static', filename='img/logo_branco.webp') }}" alt="Itaú" class="logo-dark-theme" style="height: 52px; margin-right: 20px;">
-      <i class="bi bi-list toggle-sidebar-btn no-print header-text-color" style="font-size: 28px; margin-left: 10px;"></i>
-    </div>
-    <div class="title-wrapper d-none d-lg-flex" style="position: absolute; left: 50%; transform: translateX(-50%);">
-      <div class="title d-flex align-items-center header-text-color" style="font-family: 'ItauDisplay', sans-serif; font-size: 24px; letter-spacing: 0.5px;">
-        <span style="font-weight: 400; margin-right: 6px;">Credit Risk</span> <span style="font-weight: 800; color: var(--color-accent);">System</span>
-      </div>
-    </div>
-    <div class="title d-flex align-items-center d-lg-none header-text-color" style="flex-grow: 1; justify-content: center; font-family: 'ItauDisplay', sans-serif; font-size: 20px;">
-      <span style="font-weight: 400; margin-right: 6px;">Credit Risk</span> <span style="font-weight: 800; color: var(--color-accent);">System</span>
-    </div>
-    <nav class="header-nav ms-auto no-print">
-      <ul class="d-flex align-items-center m-0 p-0" style="list-style: none;">
-        
-        <!-- Privacy Toggle -->
-        <li class="nav-item pe-2">
-          <a class="nav-link nav-icon" href="#" id="privacy-toggle" title="Toggle Privacy" style="cursor: pointer; color: var(--color-text-main);">
-            <i class="bi bi-eye-fill" id="privacy-icon"></i>
-          </a>
-        </li>
+    <!-- ======= Header ======= -->
+    <header id="header" class="header fixed-top d-flex align-items-center">
+        <div class="logo d-flex align-items-center">
+            <img src="{{ url_for('login_blueprint.static', filename='img/logo_preto.png') }}" alt="Itaú"
+                class="logo-light-theme" style="height: 52px; margin-right: 20px;">
+            <img src="{{ url_for('static', filename='img/logo_branco.webp') }}" alt="Itaú" class="logo-dark-theme"
+                style="height: 52px; margin-right: 20px;">
+            <i class="bi bi-list toggle-sidebar-btn no-print header-text-color"
+                style="font-size: 28px; margin-left: 10px;"></i>
+        </div>
+        <div class="title-wrapper d-none d-lg-flex" style="position: absolute; left: 50%; transform: translateX(-50%);">
+            <div class="title d-flex align-items-center header-text-color"
+                style="font-family: 'ItauDisplay', sans-serif; font-size: 24px; letter-spacing: 0.5px;">
+                <span style="font-weight: 400; margin-right: 6px;">Credit Risk</span> <span
+                    style="font-weight: 800; color: var(--color-accent);">System</span>
+            </div>
+        </div>
+        <div class="title d-flex align-items-center d-lg-none header-text-color"
+            style="flex-grow: 1; justify-content: center; font-family: 'ItauDisplay', sans-serif; font-size: 20px;">
+            <span style="font-weight: 400; margin-right: 6px;">Credit Risk</span> <span
+                style="font-weight: 800; color: var(--color-accent);">System</span>
+        </div>
+        <nav class="header-nav ms-auto no-print">
+            <ul class="d-flex align-items-center m-0 p-0" style="list-style: none;">
 
-        <!-- Theme Toggle -->
-        <li class="nav-item pe-3">
-          <a class="nav-link nav-icon" href="#" id="theme-toggle" title="Toggle Theme" style="cursor: pointer; color: var(--color-text-main);">
-            <i class="bi bi-sun-fill" id="theme-icon"></i>
-          </a>
-        </li>
-
-        <li class="nav-item dropdown pe-3">
-            <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown" style="gap: 10px;">
-                <div class="avatar-circle">
-                    <i class="bi bi-person-fill"></i>
-                </div>
-                <span class="d-none d-md-block dropdown-toggle fw-semibold" style="color: var(--color-text-main);">{{ username }}</span>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile border-0 p-0 shadow-lg">
-                <li class="dropdown-header d-flex align-items-center p-3">
-                  <div class="avatar-circle me-3" style="width: 46px; height: 46px; font-size: 22px;">
-                      <i class="bi bi-person-fill"></i>
-                  </div>
-                  <div class="d-flex flex-column text-start">
-                    <h6 class="mb-0 fw-bold" style="font-size: 15px; color: var(--color-text-main);">{{ username }}</h6>
-                    <span style="font-size: 13px; color: var(--color-text-muted);">{{ grupo }}</span>
-                  </div>
-                </li>
-
-                <li style="padding: 4px 0;">
-                    <a class="dropdown-item text-danger fw-semibold d-flex align-items-center" href="{{ url_for('login_blueprint.logout') }}">
-                      <i class="bi bi-box-arrow-right me-2" style="font-size: 18px;"></i>
-                      <span>Sair da conta</span>
+                <!-- Privacy Toggle -->
+                <li class="nav-item pe-2">
+                    <a class="nav-link nav-icon" href="#" id="privacy-toggle" title="Toggle Privacy"
+                        style="cursor: pointer; color: var(--color-text-main);">
+                        <i class="bi bi-eye-fill" id="privacy-icon"></i>
                     </a>
                 </li>
+
+                <!-- Theme Toggle -->
+                <li class="nav-item pe-3">
+                    <a class="nav-link nav-icon" href="#" id="theme-toggle" title="Toggle Theme"
+                        style="cursor: pointer; color: var(--color-text-main);">
+                        <i class="bi bi-sun-fill" id="theme-icon"></i>
+                    </a>
+                </li>
+
+                <li class="nav-item dropdown pe-3">
+                    <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown"
+                        style="gap: 10px;">
+                        <div class="avatar-circle">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                        <span class="d-none d-md-block dropdown-toggle fw-semibold"
+                            style="color: var(--color-text-main);">{{ username }}</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile border-0 p-0 shadow-lg">
+                        <li class="dropdown-header d-flex align-items-center p-3">
+                            <div class="avatar-circle me-3" style="width: 46px; height: 46px; font-size: 22px;">
+                                <i class="bi bi-person-fill"></i>
+                            </div>
+                            <div class="d-flex flex-column text-start">
+                                <h6 class="mb-0 fw-bold" style="font-size: 15px; color: var(--color-text-main);">{{
+                                    username }}</h6>
+                                <span style="font-size: 13px; color: var(--color-text-muted);">{{ grupo }}</span>
+                            </div>
+                        </li>
+
+                        <li style="padding: 4px 0;">
+                            <a class="dropdown-item text-danger fw-semibold d-flex align-items-center"
+                                href="{{ url_for('login_blueprint.logout') }}">
+                                <i class="bi bi-box-arrow-right me-2" style="font-size: 18px;"></i>
+                                <span>Sair da conta</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
             </ul>
-        </li>
-      </ul>
-    </nav>
-  </header><!-- End Header -->
+        </nav>
+    </header><!-- End Header -->
 
-  <!-- ======= Sidebar ======= -->
-  <aside id="sidebar" class="sidebar no-print">
-    <ul class="sidebar-nav" id="sidebar-nav">
-      
-      <li class="nav-heading">Dashboard</li>
-      <li class="nav-item">
-        <a class="nav-link " href="{{ url_for('home_page') }}">
-          <i class="bi bi-house-door"></i>
-          <span>Home</span>
-        </a>
-      </li>
-      
-    </ul>
-  </aside>
+    <!-- ======= Sidebar ======= -->
+    <aside id="sidebar" class="sidebar no-print">
+        <ul class="sidebar-nav" id="sidebar-nav">
 
-  <main id="main" class="main">
-    {% block content %}{% endblock %}
-  </main>
+            <li class="nav-heading">Dashboard</li>
+            <li class="nav-item">
+                <a class="nav-link " href="{{ url_for('home_page') }}">
+                    <i class="bi bi-house-door"></i>
+                    <span>Home</span>
+                </a>
+            </li>
 
-  <!-- Vendor JS Files -->
-  <script src="{{ url_for('static', filename='vendor/apexcharts/apexcharts.min.js') }}"></script>
-  <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+            <li class="nav-heading">Cadastros</li>
+            <li class="nav-item">
+                <a class="nav-link " href="{{ url_for('grupo_economico.cadastro') }}">
+                    <i class="bi bi-building"></i>
+                    <span>Grupo Econômico</span>
+                </a>
+            </li>
 
-  <!-- Template Main JS File -->
-  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+        </ul>
+    </aside>
 
-  {% block extra_js %}{% endblock %}
+    <main id="main" class="main">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Vendor JS Files -->
+    <script src="{{ url_for('static', filename='vendor/apexcharts/apexcharts.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+
+    <!-- Template Main JS File -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    {% block extra_js %}{% endblock %}
 
 </body>
 

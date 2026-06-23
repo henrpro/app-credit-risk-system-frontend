@@ -1,3 +1,9 @@
+const savedTheme = localStorage.getItem('theme') || 'dark';
+document.documentElement.setAttribute('data-theme', savedTheme);
+
+if (localStorage.getItem('privacy') === 'true') {
+    document.documentElement.classList.add('privacy-mode');
+}
 
 (function() {
     "use strict";
