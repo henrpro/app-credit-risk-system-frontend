@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+
+  <title>Itaú - Risco de Crédito</title>
+  <meta content="" name="description">
+  <meta content="" name="keywords">
+  
+  <link href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.css') }}" rel="stylesheet">
+
+  <!-- Main Style for Design System -->
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+  <link href="{{ url_for('login_blueprint.static', filename='css/login.css') }}" rel="stylesheet">
+  <script src="{{ url_for('login_blueprint.static', filename='js/login.js') }}"></script>
+</head>
+
+<body class="login-body">
+
+  <div class="container">
+    <section class="section register min-vh-100 d-flex flex-column align-items-center justify-content-center py-4">
+      <div class="container">
+        <div class="row justify-content-center">
+          <div class="col-lg-4 col-md-6 d-flex flex-column align-items-center justify-content-center">
+            
+            <div class="d-flex justify-content-center py-4">
+              <a href="#" class="logo d-flex align-items-center w-auto text-decoration-none">
+                <img src="{{ url_for('login_blueprint.static', filename='img/logo_preto.png') }}" alt="Itaú" class="login-logo" style="max-height: 150px;">
+              </a>
+            </div>
+
+            <div class="card mb-3 custom-card w-100 border-0 shadow-lg login-card">
+              <div class="card-body p-4 p-md-5">
+
+                <form class="row g-3 needs-validation" method="POST" action="{{ url_for('login_blueprint.login_user_route') }}" novalidate>
+                  <div class="col-12 mt-2">
+                    <label for="yourUsername" class="form-label form-label-custom">Username</label>
+                    <input type="text" name="username" class="form-control premium-input p-3" id="yourUsername" placeholder="Digite seu usuário" required>
+                    <div class="invalid-feedback">O usuário é obrigatório!</div>
+                  </div>
+
+                  <div class="col-12 mt-4">
+                    <label for="yourPassword" class="form-label form-label-custom">Senha</label>
+                    <input type="password" name="password" class="form-control premium-input p-3" id="yourPassword" placeholder="Digite sua senha" required>
+                    <div class="invalid-feedback">A senha é obrigatória!</div>
+                  </div>
+
+                  <div class="col-12 mt-5 mb-2">
+                    <button class="btn btn-itau w-100 py-3 d-flex justify-content-center align-items-center fw-bold shadow-sm login-btn" type="submit">
+                      <i class="bi bi-box-arrow-in-right me-2"></i> Entrar na Plataforma
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <div class="mt-4 text-center login-footer">
+              &copy; 2026 Risco de Crédito Itaú. Todos os direitos reservados.
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Vendor JS Files -->
+  <script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+
+</body>
+</html>

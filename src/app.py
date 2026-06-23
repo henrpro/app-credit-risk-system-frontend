@@ -1,4 +1,5 @@
 # Importações do projeto
+from blueprints.login.routes import login_blueprint, login_manager
 from config.config import init_config
 
 # Importações de bibliotecas
@@ -9,14 +10,7 @@ from flask import Flask, render_template
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # Registra as blueprints
-app.register_blueprint(cadastro_processos, url_prefix='/cadastro_processos')
-app.register_blueprint(asset_allocation, url_prefix='/asset_allocation')
-app.register_blueprint(cadastro_ativos, url_prefix='/cadastro_ativos')
-app.register_blueprint(task_monitor, url_prefix='/task_monitor')
 app.register_blueprint(login_blueprint, url_prefix='/login')
-app.register_blueprint(boletador, url_prefix='/boletador')
-app.register_blueprint(quant_hub, url_prefix='/quant_hub')
-app.register_blueprint(snapshot, url_prefix='/snapshot')
 
 
 # Rota inicial da aplicação

@@ -1,0 +1,58 @@
+/* Specific classes for login blueprint */
+
+.login-body {
+  background: var(--color-bg-main);
+}
+
+.login-logo-icon {
+  color: var(--color-accent);
+  font-size: 36px;
+}
+
+.login-logo-text1 {
+  font-size: 32px;
+  font-weight: bold;
+  color: var(--color-text-main);
+  font-family: 'Raleway-SemiBold', sans-serif;
+}
+
+.login-logo-text2 {
+  font-size: 32px;
+  font-weight: bold;
+  background: var(--color-accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-family: 'Raleway-SemiBold', sans-serif;
+}
+
+.login-card {
+  background-color: var(--color-bg-card);
+  border-radius: 24px !important;
+}
+
+.login-btn {
+  font-size: 16px;
+}
+
+.btn-itau {
+  background-color: #EC7000 !important;
+  color: #FFFFFF !important;
+  border: none !important;
+  transition: background-color 0.3s ease;
+}
+
+.btn-itau:hover {
+  background-color: #d86600 !important;
+  color: #FFFFFF !important;
+}
+
+.form-label-custom {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.login-footer {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-family: 'ItauText', sans-serif;
+}

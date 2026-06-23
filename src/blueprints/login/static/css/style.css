@@ -1,0 +1,49 @@
+/*--------------------------------------------------------------
+# Login Page Fonts & General Styles
+--------------------------------------------------------------*/
+
+/* Itaú Official Fonts Registration */
+@font-face {
+  font-family: 'ItauDisplay';
+  src: url('/static/fonts/ItauDisplayPro_Bd.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'ItauText';
+  src: url('/static/fonts/ItauTextPro_Bd.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'ItauText';
+  src: url('/static/fonts/ItauTextPro_Rg.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Base resets applying the Itaú fonts */
+body, html {
+  font-family: 'ItauText', sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'ItauDisplay', sans-serif;
+  font-weight: bold;
+}
+
+p, label, input, span {
+  font-family: 'ItauText', sans-serif;
+}
+
+.login-logo {
+  height: 150px;
+  object-fit: contain;
+}
+
+.btn-custom, .login-btn {
+  font-family: 'ItauText', sans-serif;
+  font-weight: bold;
+}
