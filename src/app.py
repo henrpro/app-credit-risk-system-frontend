@@ -1,6 +1,5 @@
 # Importações do projeto
 from blueprints.login.routes import login_blueprint, login_manager
-from blueprints.grupo_economico.routes import grupo_economico_bp
 from config.config import init_config
 
 # Importações de bibliotecas
@@ -12,8 +11,6 @@ app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # Registra as blueprints
 app.register_blueprint(login_blueprint, url_prefix='/login')
-app.register_blueprint(grupo_economico_bp, url_prefix='/grupo-economico')
-
 
 # Rota inicial da aplicação
 @app.route('/')

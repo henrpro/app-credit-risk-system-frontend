@@ -17,8 +17,6 @@
 </head>
 
 <body>
-
-    <!-- ======= Header ======= -->
     <header id="header" class="header fixed-top d-flex align-items-center">
         <div class="logo d-flex align-items-center">
             <img src="{{ url_for('login_blueprint.static', filename='img/logo_preto.png') }}" alt="Itaú"
@@ -91,12 +89,10 @@
                 </li>
             </ul>
         </nav>
-    </header><!-- End Header -->
+    </header>
 
-    <!-- ======= Sidebar ======= -->
     <aside id="sidebar" class="sidebar no-print">
         <ul class="sidebar-nav" id="sidebar-nav">
-
             <li class="nav-heading">Dashboard</li>
             <li class="nav-item">
                 <a class="nav-link " href="{{ url_for('home_page') }}">
@@ -104,15 +100,6 @@
                     <span>Home</span>
                 </a>
             </li>
-
-            <li class="nav-heading">Cadastros</li>
-            <li class="nav-item">
-                <a class="nav-link " href="{{ url_for('grupo_economico.cadastro') }}">
-                    <i class="bi bi-building"></i>
-                    <span>Grupo Econômico</span>
-                </a>
-            </li>
-
         </ul>
     </aside>
 

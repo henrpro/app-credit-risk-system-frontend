@@ -171,40 +171,6 @@ label {
   }
 }
 
-/*--------------------------------------------------------------
-# Buttons
---------------------------------------------------------------*/
-
-.btn-custom-submit {
-  background-color: var(--color-accent);
-  border-color: var(--color-accent);
-  font-family: "OpenSans-Regular";
-  font-size: 14px;
-  color: #000;
-  padding: 7px 14px;
-  border-radius: 4px;
-  width: 100%;
-}
-
-.btn-custom-submit:hover {
-  background-color: var(--color-accent-hover);
-}
-
-.btn-custom-setup {
-  background-color: var(--color-bg-card);
-  border-color: var(--color-border);
-  font-family: "OpenSans-Regular";
-  font-size: 14px;
-  color: var(--color-text-main);
-  padding: 7px 14px;
-  border-radius: 4px;
-  width: 100%;
-}
-
-.btn-custom-setup:hover {
-  background-color: var(--color-accent);
-  color: #000;
-}
 
 /*--------------------------------------------------------------
 # Forms & Selects
@@ -275,39 +241,6 @@ label {
 }
 
 
-/*--------------------------------------------------------------
-# Back to top
---------------------------------------------------------------*/
-
-.back-to-top {
-  position: fixed;
-  visibility: hidden;
-  opacity: 0;
-  right: 15px;
-  bottom: 15px;
-  z-index: 99999;
-  background: var(--color-accent);
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
-  transition: all 0.4s;
-}
-
-.back-to-top i {
-  font-size: 24px;
-  color: #000;
-  line-height: 0;
-}
-
-.back-to-top:hover {
-  background: #6776f4;
-  color: #fff;
-}
-
-.back-to-top.active {
-  visibility: visible;
-  opacity: 1;
-}
 
 /*--------------------------------------------------------------
 # Header
@@ -616,49 +549,6 @@ label {
   color: var(--color-text-main);
 }
 
-/*--------------------------------------------------------------
-# Dashboard Buttons
---------------------------------------------------------------*/
-
-.custom-button {
-  background-color: var(--color-bg-card);
-  color: var(--color-text-main);
-  border: 1px solid var(--color-border);
-  width: 150px;
-  height: 150px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  position: relative;
-  transition: 0.3s;
-}
-
-.custom-button:hover {
-  background-color: var(--color-accent);
-  color: #000;
-}
-
-.custom-button i {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  font-size: 24px;
-}
-
-.custom-button span {
-  margin-bottom: 10px;
-}
-
-.custom-button-container {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  align-items: center;
-}
 
 .card {
   background-color: var(--color-bg-card);
@@ -678,7 +568,7 @@ label {
 
 .pagetitle-main {
   color: var(--color-accent);
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-family: 'Raleway-SemiBold', sans-serif;
   margin-bottom: 0;
 }
@@ -780,24 +670,6 @@ label {
 # Premium Components
 --------------------------------------------------------------*/
 
-.btn-purple {
-  background-color: #8B5CF6; /* Purple 500 */
-  color: #ffffff;
-  border: none;
-  font-weight: 600;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  font-family: 'OpenSans-Regular', sans-serif;
-  padding: 10px 16px;
-}
-
-.btn-purple:hover {
-  background-color: #7C3AED; /* Purple 600 */
-  color: #ffffff;
-  box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
-  transform: translateY(-1px);
-}
-
 .custom-card {
   background-color: var(--color-bg-secondary);
   border-radius: 12px;
@@ -819,19 +691,6 @@ label {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2) !important;
 }
 
-/*--------------------------------------------------------------
-# Task Monitor Additions
---------------------------------------------------------------*/
-.task-card-monitor {
-  transition: all 0.3s ease;
-  border: 1px solid transparent !important;
-}
-
-.task-card-monitor:hover {
-  border-color: var(--color-accent) !important;
-  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.15);
-  transform: translateY(-4px);
-}
 
 /*--------------------------------------------------------------
 # ApexCharts Tooltip Fix
@@ -878,4 +737,46 @@ label {
 
 [data-theme="light"] .header-text-color {
   color: #000000 !important;
+}
+
+/* Premium Form Styles */
+.premium-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.premium-label i {
+  margin-right: 4px;
+  font-size: 14px;
+  color: var(--color-accent);
+}
+
+.premium-input, .premium-select {
+  background-color: var(--color-bg-secondary) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 8px !important;
+  padding: 12px 16px !important;
+  font-size: 15px !important;
+  color: var(--color-text-main) !important;
+  transition: all 0.3s ease !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02) !important;
+}
+
+.premium-input:focus, .premium-select:focus {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 0 4px rgba(236, 112, 0, 0.15) !important;
+  outline: none !important;
+  background-color: var(--color-bg-card) !important;
+}
+
+.premium-card {
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.04);
+  background-color: var(--color-bg-card);
 }
