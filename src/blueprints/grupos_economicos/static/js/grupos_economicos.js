@@ -43,6 +43,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Função para aplicar máscara de CNPJ
+    function maskCNPJ(value) {
+        return value
+            .replace(/\D/g, '') // Remove tudo o que não é dígito
+            .replace(/^(\d{2})(\d)/, '$1.$2') // Coloca ponto entre o segundo e o terceiro dígitos
+            .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3') // Coloca ponto entre o quinto e o sexto dígitos
+            .replace(/\.(\d{3})(\d)/, '.$1/$2') // Coloca uma barra entre o oitavo e o nono dígitos
+            .replace(/(\d{4})(\d)/, '$1-$2'); // Coloca um hífen depois do bloco de quatro dígitos
+    }
+
+    // Delegação de eventos para as máscaras (funciona para inputs criados dinamicamente)
+    document.addEventListener('input', function(e) {
+        if (e.target && e.target.classList.contains('cnpj-mask')) {
+            e.target.value = maskCNPJ(e.target.value);
+        }
+    });
+
     if (btnAdicionar && container && template) {
         btnAdicionar.addEventListener('click', function() {
             // Clona o conteúdo do template

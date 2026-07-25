@@ -604,3 +604,34 @@ label {
   outline: none !important;
   background-color: var(--color-bg-card) !important;
 }
+
+/*--------------------------------------------------------------
+# Premium Buttons
+--------------------------------------------------------------*/
+.btn-associar {
+    background: rgba(236, 112, 0, 0.05);
+    color: var(--color-accent);
+    border: 1.5px solid rgba(236, 112, 0, 0.4);
+    border-radius: 8px;
+    font-family: 'ItauText', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 8px 24px;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.btn-associar i {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.btn-associar:hover {
+    background: var(--color-accent);
+    color: #ffffff !important;
+    border-color: var(--color-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(236, 112, 0, 0.35);
+}
