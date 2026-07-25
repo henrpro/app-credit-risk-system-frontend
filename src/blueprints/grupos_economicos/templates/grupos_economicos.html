@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Grupos Econômicos - Credit Risk System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 style="color: var(--color-accent); font-weight: 800; font-family: 'ItauDisplay', sans-serif; margin-bottom: 24px; font-size: 2rem;">Grupos Econômicos</h1>
+        </div>
+    </div>
+
+    <!-- Abas -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <ul class="nav nav-tabs" id="gruposTab" role="tablist" style="border-bottom: 1px solid var(--color-border);">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="cadastrar-tab" data-bs-toggle="tab" data-bs-target="#cadastrar" type="button" role="tab" aria-controls="cadastrar" aria-selected="true" style="color: var(--color-text-main); font-weight: 600; border-color: var(--color-border) var(--color-border) transparent;">Cadastrar Novo Grupo Econômico</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="visualizar-tab" data-bs-toggle="tab" data-bs-target="#visualizar" type="button" role="tab" aria-controls="visualizar" aria-selected="false" style="color: var(--color-text-muted); font-weight: 600;">Visualizar Grupo Econômico</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="gruposTabContent" style="padding-top: 24px;">
+                <!-- Aba 1: Cadastrar Novo Grupo -->
+                <div class="tab-pane fade show active" id="cadastrar" role="tabpanel" aria-labelledby="cadastrar-tab">
+                    <div class="card border-0 shadow-sm mt-2" style="background-color: var(--color-bg-secondary); border-radius: 12px;">
+                        <div class="card-body p-4">
+                            <h5 style="color: var(--color-accent); font-family: 'Raleway-SemiBold', sans-serif; margin-bottom: 24px; font-weight: 600;">Detalhes do Grupo Econômico</h5>
+                            
+                            <form id="formCadastrarGrupo" class="needs-validation" novalidate>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="nomeGrupo" class="form-label" style="font-weight: 600; font-size: 14px;">Nome do Grupo <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" id="nomeGrupo" name="nomeGrupo" placeholder="Ex: Grupo Itaúsa" required>
+                                        <div class="invalid-feedback" style="font-size: 13px;">
+                                            Por favor, insira o nome do grupo econômico.
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba 2: Visualizar Grupo -->
+                <div class="tab-pane fade" id="visualizar" role="tabpanel" aria-labelledby="visualizar-tab">
+                    <h5 style="color: var(--color-text-main);">Busca e Visualização</h5>
+                    <p style="color: var(--color-text-muted);">Aqui ficarão os filtros de busca e as informações do grupo selecionado.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,35 +1,25 @@
+# Importações de bibliotecas
+from flask import current_app
 from typing import Dict, Any
+import requests
 
 class APILoginService:
-    @staticmethod
-    def authenticate(username: str, password_attempt: str) -> Dict[str, Any]:
-        """
-        Simula uma chamada de API para autenticação de usuário.
-        Usuário de teste: 'Teste' | Senha: '123'
-        """
-        if username == 'Teste' and password_attempt == '123':
-            return {
-                'success': True,
-                'cdGrupo': 'Administrador'
-            }
-        
-        return {
-            'success': False,
-            'cdGrupo': None
-        }
 
-    @staticmethod
-    def get_user_data(username: str) -> Dict[str, Any]:
-        """
-        Simula a busca de dados do usuário na API.
-        """
-        if username == 'Teste':
-            return {
-                'cdPassword': '123',
-                'cdGrupo': 'Administrador'
-            }
-            
-        return {
-            'cdPassword': None,
-            'cdGrupo': None
-        }
+    @classmethod
+    def authenticate(cls, username: str, password_attempt: str) -> Dict[str, Any]:
+        try:
+            payload = {"username": username, "password": password_attempt}
+            response = requests.post(f"{current_app.config['BACKEND_URL']}/v1/login/authenticate", data=payload)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            raise e
+
+    @classmethod
+    def get_user_data(cls, username: str) -> Dict[str, Any]:
+        try:
+            response = requests.get(f"{current_app.config['BACKEND_URL']}/v1/login/{username}")
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            raise e

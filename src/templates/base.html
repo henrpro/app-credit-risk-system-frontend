@@ -95,9 +95,16 @@
         <ul class="sidebar-nav" id="sidebar-nav">
             <li class="nav-heading">Dashboard</li>
             <li class="nav-item">
-                <a class="nav-link " href="{{ url_for('home_page') }}">
+                <a class="nav-link collapsed" href="{{ url_for('home_page') }}">
                     <i class="bi bi-house-door"></i>
                     <span>Home</span>
+                </a>
+            </li>
+            <li class="nav-heading">Módulos</li>
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="{{ url_for('grupos_economicos.grupos_economicos') }}">
+                    <i class="bi bi-building"></i>
+                    <span>Grupos Econômicos</span>
                 </a>
             </li>
         </ul>

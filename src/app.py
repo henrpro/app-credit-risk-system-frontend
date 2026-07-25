@@ -1,4 +1,5 @@
 # Importações do projeto
+from blueprints.grupos_economicos.routes import grupos_economicos_blueprint
 from blueprints.login.routes import login_blueprint, login_manager
 from config.config import init_config
 
@@ -10,6 +11,7 @@ from flask import Flask, render_template
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # Registra as blueprints
+app.register_blueprint(grupos_economicos_blueprint, url_prefix='/grupos_economicos')
 app.register_blueprint(login_blueprint, url_prefix='/login')
 
 # Rota inicial da aplicação

@@ -17,7 +17,7 @@ class User(UserMixin):
         try:
             data = APILoginService.authenticate(username, password_attempt)
             if data.get('success'):
-                return True, data.get('cdGrupo')
+                return True, data.get('dsProfile')
             return False, None
         except Exception:
             return False, None
@@ -26,7 +26,7 @@ class User(UserMixin):
     def get_user_data(username: str) -> Tuple[Optional[str], Optional[str]]:
         try:
             data = APILoginService.get_user_data(username)
-            return data.get('cdPassword'), data.get('cdGrupo')
+            return data.get('cdPassword'), data.get('dsProfile')
         except Exception:
             return None, None
 
