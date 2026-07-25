@@ -37,12 +37,75 @@
                                         </div>
                                     </div>
                                     <div class="col-md-6 mb-3">
-                                        <button type="button" class="btn shadow-sm" style="background-color: #ffffff; color: #000000; border: 1px solid #000000; font-family: 'ItauText', sans-serif; font-weight: 600; font-size: 14px; padding: 7px 16px;">
+                                        <button type="button" id="btnAdicionarEmissor" class="btn shadow-sm" style="background-color: #ffffff; color: #000000; border: 1px solid #000000; font-family: 'ItauText', sans-serif; font-weight: 600; font-size: 14px; padding: 7px 16px;">
                                             <i class="bi bi-plus-circle me-2"></i>Adicionar Emissor
                                         </button>
                                     </div>
                                 </div>
+
+                                <!-- Container para os novos emissores -->
+                                <div id="emissoresContainer"></div>
+
                             </form>
+
+                            <!-- Template oculto para os blocos de emissor -->
+                            <template id="emissorTemplate">
+                                <div class="emissor-block p-4 mb-4 mt-3" style="background-color: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 8px; position: relative;">
+                                    <button type="button" class="btn btn-sm text-danger remove-emissor-btn" style="position: absolute; top: 10px; right: 10px; font-size: 18px;" title="Remover Emissor">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    
+                                    <h6 style="font-family: 'ItauText', sans-serif; font-weight: bold; color: var(--color-accent); margin-bottom: 20px;">Detalhes do Emissor</h6>
+                                    
+                                    <!-- Linha 1 -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label" style="font-family: 'ItauText', sans-serif; font-weight: bold; font-size: 14px;">Nome do Emissor</label>
+                                            <input type="text" class="form-control" name="nomeEmissor[]" style="font-family: 'ItauText', sans-serif; background-color: var(--color-bg-main); border: 1px solid var(--color-border); color: var(--color-text-main); font-size: 14px;" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label" style="font-family: 'ItauText', sans-serif; font-weight: bold; font-size: 14px;">CNPJ</label>
+                                            <input type="text" class="form-control" name="cnpjEmissor[]" style="font-family: 'ItauText', sans-serif; background-color: var(--color-bg-main); border: 1px solid var(--color-border); color: var(--color-text-main); font-size: 14px;" required>
+                                        </div>
+                                    </div>
+
+                                    <!-- Linha 2 -->
+                                    <div class="row mb-4">
+                                        <div class="col-md-4">
+                                            <label class="form-label" style="font-family: 'ItauText', sans-serif; font-weight: bold; font-size: 14px;">É Holding?</label>
+                                            <select class="form-control" name="isHolding[]" style="font-family: 'ItauText', sans-serif; background-color: var(--color-bg-main); border: 1px solid var(--color-border); color: var(--color-text-main); font-size: 14px;">
+                                                <option value="nao">Não</option>
+                                                <option value="sim">Sim</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label" style="font-family: 'ItauText', sans-serif; font-weight: bold; font-size: 14px;">Consome da Holding?</label>
+                                            <select class="form-control" name="consomeHolding[]" style="font-family: 'ItauText', sans-serif; background-color: var(--color-bg-main); border: 1px solid var(--color-border); color: var(--color-text-main); font-size: 14px;">
+                                                <option value="nao">Não</option>
+                                                <option value="sim">Sim</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label" style="font-family: 'ItauText', sans-serif; font-weight: bold; font-size: 14px;">Holding de Consumo</label>
+                                            <select class="form-control select-holding-consumo" name="holdingConsumo[]" style="font-family: 'ItauText', sans-serif; background-color: var(--color-bg-main); border: 1px solid var(--color-border); color: var(--color-text-main); font-size: 14px;">
+                                                <option value="">Nenhuma</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Linha 3 -->
+                                    <div class="row">
+                                        <div class="col-12 d-flex gap-3 justify-content-center mt-2">
+                                            <button type="button" class="btn shadow-sm" style="background-color: transparent; color: var(--color-text-main); border: 1px solid var(--color-border); font-family: 'ItauText', sans-serif; font-weight: 600; font-size: 13px; padding: 6px 16px;">
+                                                <i class="bi bi-link me-1"></i>Associar Emissor OC3
+                                            </button>
+                                            <button type="button" class="btn shadow-sm" style="background-color: transparent; color: var(--color-text-main); border: 1px solid var(--color-border); font-family: 'ItauText', sans-serif; font-weight: 600; font-size: 13px; padding: 6px 16px;">
+                                                <i class="bi bi-link me-1"></i>Associar Emissor CRIMS
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
                         </div>
                     </div>
                 </div>
@@ -56,4 +119,8 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('grupos_economicos.static', filename='js/grupos_economicos.js') }}"></script>
 {% endblock %}
