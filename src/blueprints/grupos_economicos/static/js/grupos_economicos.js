@@ -155,4 +155,48 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Lógica do Modal Detalhes do Emissor (Organograma)
+    const modalEmissorDetalhes = document.getElementById('modalEmissorDetalhes');
+    if (modalEmissorDetalhes) {
+        modalEmissorDetalhes.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            
+            const nome = button.getAttribute('data-nome');
+            const oc3 = button.getAttribute('data-oc3');
+            const crims = button.getAttribute('data-crims');
+            let papeis = {};
+            try {
+                papeis = JSON.parse(button.getAttribute('data-papeis') || '{}');
+            } catch (e) {
+                console.error("Erro ao fazer parse dos papeis", e);
+            }
+            
+            document.getElementById('modalEmissorNome').textContent = nome;
+            document.getElementById('modalEmissorOC3').textContent = oc3 && oc3 !== 'None' ? oc3 : 'N/A';
+            document.getElementById('modalEmissorCRIMS').textContent = crims && crims !== 'None' ? crims : 'N/A';
+            
+            const tbody = document.getElementById('modalTabelaPapeis');
+            tbody.innerHTML = '';
+            
+            if (Object.keys(papeis).length > 0) {
+                for (const [papel, consumo] of Object.entries(papeis)) {
+                    const tr = document.createElement('tr');
+                    
+                    const tdPapel = document.createElement('td');
+                    tdPapel.textContent = papel;
+                    tr.appendChild(tdPapel);
+                    
+                    const tdConsumo = document.createElement('td');
+                    // Converte decimal para porcentagem (1 = 100%, 0.5 = 50%)
+                    tdConsumo.textContent = (parseFloat(consumo) * 100).toFixed(0) + '%';
+                    tr.appendChild(tdConsumo);
+                    
+                    tbody.appendChild(tr);
+                }
+            } else {
+                tbody.innerHTML = '<tr><td colspan="2" class="text-muted" style="padding: 16px;">Nenhum papel de consumo associado.</td></tr>';
+            }
+        });
+    }
 });

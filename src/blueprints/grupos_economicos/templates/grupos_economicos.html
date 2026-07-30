@@ -46,6 +46,13 @@
                                 <!-- Container para os novos emissores -->
                                 <div id="emissoresContainer"></div>
 
+                                <div class="row mt-4">
+                                    <div class="col-12 text-center">
+                                        <button type="submit" class="btn" style="background-color: var(--color-accent); color: white; font-family: 'ItauText', sans-serif; font-weight: 700; padding: 10px 32px; border-radius: 8px;">
+                                            <i class="bi bi-check-circle me-2"></i> Cadastrar Grupo Econômico
+                                        </button>
+                                    </div>
+                                </div>
                             </form>
 
                             <!-- Template oculto para os blocos de emissor -->
@@ -114,22 +121,24 @@
 
                 <!-- Aba 2: Visualizar Grupo -->
                 <div class="tab-pane fade" id="visualizar" role="tabpanel" aria-labelledby="visualizar-tab">
-                    <div class="row align-items-end mb-4">
-                        <div class="col-md-9">
-                            <label for="selectGrupoFiltro" class="form-label" style="font-family: 'ItauText', sans-serif; font-weight: bold; font-size: 17px;">Selecione o Grupo Econômico</label>
-                            <select class="form-select" id="selectGrupoFiltro" style="font-family: 'ItauText', sans-serif; background-color: var(--color-bg-main); border: 1px solid var(--color-border); color: var(--color-text-main); font-size: 14px; height: 42px;">
-                                <option value="" selected>Escolha um grupo...</option>
-                                <option value="1">GRUPO TESTE</option>
-                                <option value="2">COSAN</option>
-                                <option value="3">AEGEA</option>
-                            </select>
+                    <form method="GET" action="{{ url_for('grupos_economicos.grupos_economicos_result') }}">
+                        <div class="row align-items-end mb-4">
+                            <div class="col-md-9">
+                                <label for="selectGrupoFiltro" class="form-label" style="font-family: 'ItauText', sans-serif; font-weight: bold; font-size: 17px;">Selecione o Grupo Econômico</label>
+                                <select class="form-select" name="grupo_id" id="selectGrupoFiltro" style="font-family: 'ItauText', sans-serif; background-color: var(--color-bg-main); border: 1px solid var(--color-border); color: var(--color-text-main); font-size: 14px; height: 42px;" required>
+                                    <option value="" selected>Escolha um grupo...</option>
+                                    {% for grupo in opcoes_grupos %}
+                                    <option value="{{ loop.index }}">{{ grupo }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn w-100" type="submit" id="btnPesquisarGrupo" style="background-color: var(--color-accent); border-color: var(--color-accent); color: white; font-weight: 600; font-family: 'ItauText', sans-serif; height: 42px;">
+                                    <i class="bi bi-search me-2"></i>Pesquisar
+                                </button>
+                            </div>
                         </div>
-                        <div class="col-md-3">
-                            <button class="btn w-100" type="button" id="btnPesquisarGrupo" style="background-color: var(--color-accent); border-color: var(--color-accent); color: white; font-weight: 600; font-family: 'ItauText', sans-serif; height: 42px;">
-                                <i class="bi bi-search me-2"></i>Pesquisar
-                            </button>
-                        </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
