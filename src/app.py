@@ -11,7 +11,7 @@ from flask import Flask, render_template
 app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # Registra as blueprints
-app.register_blueprint(grupos_economicos_blueprint, url_prefix='/grupos_economicos')
+app.register_blueprint(grupos_economicos_blueprint, url_prefix='/grupos-economicos')
 app.register_blueprint(login_blueprint, url_prefix='/login')
 
 # Rota inicial da aplicação

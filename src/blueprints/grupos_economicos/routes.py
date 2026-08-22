@@ -1,78 +1,120 @@
 # Importações do projeto
-from blueprints.login.auth import User
 from services.api_grupos_economicos_service import APIGruposEconomicosService
 
 # Importações de bibliotecas
-from flask import Blueprint, render_template, request, jsonify
-from flask_login import login_required
+from flask import Blueprint, render_template, request, jsonify, redirect, url_for
+from flask_login import login_required, current_user
 from typing import Any
 
 # Cria a blueprint
 grupos_economicos_blueprint = Blueprint('grupos_economicos', __name__, template_folder='templates', static_folder='static')
 
-# Define uma rota para a página de login
-@grupos_economicos_blueprint.route('/grupos-economicos', methods=['GET', 'POST'])
+@grupos_economicos_blueprint.route('/', methods=['GET'])
 @login_required
-def grupos_economicos() -> Any:
+def grupos_economicos():
+    return render_template(
+        'grupos_economicos.html',
+        username=current_user.id,
+        grupo=getattr(current_user, 'grupo', '')
+    )
+
+@grupos_economicos_blueprint.route('/consultar', methods=['GET', 'POST'])
+@login_required
+def consultar_grupo_economico():
+    return render_template(
+        'grupos_economicos_consultar.html',
+        username=current_user.id,
+        grupo=getattr(current_user, 'grupo', '')
+    )
+
+@grupos_economicos_blueprint.route('/alterar', methods=['GET', 'POST'])
+@login_required
+def alterar_grupo_economico():
+    return render_template(
+        'grupos_economicos_alterar.html',
+        username=current_user.id,
+        grupo=getattr(current_user, 'grupo', '')
+    )
+
+@grupos_economicos_blueprint.route('/criar', methods=['GET', 'POST'])
+@login_required
+def criar_grupo_economico():
     if request.method == 'POST':
-        pass
-    
-    opcoes_grupos = APIGruposEconomicosService.get_grupos_economicos_cadastrados()
-    return render_template('grupos_economicos.html', opcoes_grupos=opcoes_grupos)
+        try:
+            if request.is_json:
+                payload = request.get_json()
+            else:
+                ds_grupo = request.form.get('nomeGrupo', '').strip()
+                cnpjs = request.form.getlist('cnpjEmissor[]')
+                nomes = request.form.getlist('nomeEmissor[]')
+                is_holdings = request.form.getlist('isHolding[]')
+                consome_holdings = request.form.getlist('consomeHolding[]')
+                holdings_consumo = request.form.getlist('holdingConsumo[]')
+                setores_list = request.form.getlist('setorEmissor[]')
+                subsetores_list = request.form.getlist('subsetorEmissor[]')
+                
+                emissores = []
+                for i in range(len(nomes)):
+                    emissores.append({
+                        'cdCnpj': cnpjs[i].strip() if i < len(cnpjs) else '',
+                        'dsEmissor': nomes[i].strip() if i < len(nomes) else '',
+                        'icHolding': 1 if (i < len(is_holdings) and is_holdings[i] == 'sim') else 0,
+                        'icConsomeHolding': 1 if (i < len(consome_holdings) and consome_holdings[i] == 'sim') else 0,
+                        'dsEmissorHoldingConsumo': holdings_consumo[i].strip() if (i < len(holdings_consumo) and holdings_consumo[i] and holdings_consumo[i] != 'Nenhuma') else None,
+                        'dsSetor': setores_list[i].strip() if (i < len(setores_list) and setores_list[i]) else None,
+                        'dsSubsetor': subsetores_list[i].strip() if (i < len(subsetores_list) and subsetores_list[i]) else None,
+                        'cdEmissoresOC3': request.form.getlist(f'emissores[{i}][oc3_codigos][]'),
+                        'cdEmissoresCRIMS': request.form.getlist(f'emissores[{i}][crims_codigos][]')
+                    })
+                payload = {
+                    'dsGrupo': ds_grupo,
+                    'emissores': emissores
+                }
+            
+            resposta = APIGruposEconomicosService.registrar_grupo_economico(payload)
+            if request.is_json:
+                return jsonify({
+                    "success": True, 
+                    "message": resposta.get('message', 'Grupo econômico registrado com sucesso.'),
+                    "redirect_url": url_for('grupos_economicos.grupos_economicos')
+                })
+            return redirect(url_for('grupos_economicos.grupos_economicos'))
+        except Exception as e:
+            if request.is_json:
+                return jsonify({"success": False, "error": str(e)}), 400
+            return redirect(url_for('grupos_economicos.grupos_economicos'))
 
-
-# Define uma rota para a página de login
-@grupos_economicos_blueprint.route('/grupos_economicos_result', methods=['GET', 'POST'])
-@login_required
-def grupos_economicos_result() -> Any:
-    opcoes_grupos = APIGruposEconomicosService.get_grupos_economicos_cadastrados()
-    
-    ds_grupo = request.form.get('grupo') or request.args.get('grupo') or "GRUPO TESTE"
-    
-    grupo_data_list = []
     try:
-        grupo_data_list = APIGruposEconomicosService.consultar_grupo_economico({'dsGrupo': ds_grupo})
-    except Exception:
-        pass
-    
-    emissores = []
-    for item in grupo_data_list:
-        emissores.append({
-            'id': item.get('idEmissor'),
-            'nome': item.get('dsEmissor'),
-            'is_holding': bool(item.get('icHolding')),
-            'parent_id': item.get('idEmissorHoldingConsumo'),
-            'setor': item.get('dsSetor'),
-            'oc3': item.get('cdEmissorOC3'),
-            'papeis': item.get('cdListaPapeis')
-        })
-        
-    holdings = [e for e in emissores if e['is_holding']]
-    independentes = [e for e in emissores if not e['is_holding'] and e['parent_id'] is None]
-    
-    for h in holdings:
-        h['children'] = [e for e in emissores if e['parent_id'] == h['id']]
-        
-    organograma = {
-        'nome_grupo': ds_grupo,
-        'holdings': holdings,
-        'independentes': independentes
-    }
+        setores = APIGruposEconomicosService.obtem_setores_cadastrados()
+        subsetores = APIGruposEconomicosService.obtem_subsetores_cadastrados()
+        return render_template(
+            'grupos_economicos_criar.html',
+            username=current_user.id,
+            grupo=getattr(current_user, 'grupo', ''),
+            setores=setores,
+            subsetores=subsetores
+        )
+    except Exception as e:
+        return redirect(url_for('grupos_economicos.grupos_economicos'))
 
-    return render_template('grupos_economicos_result.html', opcoes_grupos=opcoes_grupos, organograma=organograma)
-
-@grupos_economicos_blueprint.route('/api/buscar-emissores')
+@grupos_economicos_blueprint.route('/api/emissores-oc3', methods=['GET'])
+@grupos_economicos_blueprint.route('/grupos-economicos/api/emissores-oc3', methods=['GET'])
 @login_required
-def buscar_emissores() -> Any:
-    query = request.args.get('q', '')
-    
+def api_obtem_emissores_oc3():
     try:
-        dados = APIGruposEconomicosService.obtem_emissores_oc3({'dsEmissor': query})
-        resultados = [
-            {"codigo": item.get("cd_Emissor", ""), "nome": item.get("cd_Emissor", "")} 
-            for item in dados
-        ]
-    except Exception:
-        resultados = []
-        
-    return jsonify(resultados)
+        filtros = request.args.to_dict()
+        dados = APIGruposEconomicosService.obtem_emissores_oc3(filtros=filtros)
+        return jsonify({"success": True, "data": dados})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e), "data": []}), 500
+
+@grupos_economicos_blueprint.route('/api/emissores-crims', methods=['GET'])
+@grupos_economicos_blueprint.route('/grupos-economicos/api/emissores-crims', methods=['GET'])
+@login_required
+def api_obtem_emissores_crims():
+    try:
+        filtros = request.args.to_dict()
+        dados = APIGruposEconomicosService.obtem_emissores_crims(filtros=filtros)
+        return jsonify({"success": True, "data": dados})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e), "data": []}), 500

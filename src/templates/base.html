@@ -19,24 +19,18 @@
 <body>
     <header id="header" class="header fixed-top d-flex align-items-center">
         <div class="logo d-flex align-items-center">
-            <img src="{{ url_for('login_blueprint.static', filename='img/logo_preto.png') }}" alt="Itaú"
-                class="logo-light-theme" style="height: 52px; margin-right: 20px;">
-            <img src="{{ url_for('static', filename='img/logo_branco.webp') }}" alt="Itaú" class="logo-dark-theme"
-                style="height: 52px; margin-right: 20px;">
-            <i class="bi bi-list toggle-sidebar-btn no-print header-text-color"
-                style="font-size: 28px; margin-left: 10px;"></i>
+            <img src="{{ url_for('login_blueprint.static', filename='img/logo_preto.png') }}" alt="Itaú" class="logo-light-theme" style="height: 52px; margin-right: 20px;">
+            <img src="{{ url_for('static', filename='img/logo_branco.webp') }}" alt="Itaú" class="logo-dark-theme" style="height: 52px; margin-right: 20px;">
+            <i class="bi bi-list toggle-sidebar-btn no-print header-text-color" style="font-size: 28px; margin-left: 10px;"></i>
         </div>
         <div class="title-wrapper d-none d-lg-flex" style="position: absolute; left: 50%; transform: translateX(-50%);">
-            <div class="title d-flex align-items-center header-text-color"
-                style="font-family: 'ItauDisplay', sans-serif; font-size: 24px; letter-spacing: 0.5px;">
-                <span style="font-weight: 400; margin-right: 6px;">Credit Risk</span> <span
-                    style="font-weight: 800; color: var(--color-accent);">System</span>
+            <div class="title d-flex align-items-center header-text-color" style="font-family: 'ItauDisplay', sans-serif; font-size: 24px; letter-spacing: 0.5px;">
+                <span style="font-weight: 400; margin-right: 6px;">Credit Risk</span> <span style="font-weight: 600; color: var(--color-accent);">System</span>
             </div>
         </div>
-        <div class="title d-flex align-items-center d-lg-none header-text-color"
-            style="flex-grow: 1; justify-content: center; font-family: 'ItauDisplay', sans-serif; font-size: 20px;">
-            <span style="font-weight: 400; margin-right: 6px;">Credit Risk</span> <span
-                style="font-weight: 800; color: var(--color-accent);">System</span>
+        <div class="title d-flex align-items-center d-lg-none header-text-color" style="flex-grow: 1; justify-content: center; font-family: 'ItauDisplay', sans-serif; font-size: 20px;">
+            <span style="font-weight: 600; margin-right: 6px;">Credit Risk</span> 
+            <span style="font-weight: 600; color: var(--color-accent);">System</span>
         </div>
         <nav class="header-nav ms-auto no-print">
             <ul class="d-flex align-items-center m-0 p-0" style="list-style: none;">
@@ -58,13 +52,11 @@
                 </li>
 
                 <li class="nav-item dropdown pe-3">
-                    <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown"
-                        style="gap: 10px;">
+                    <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown" style="gap: 10px;">
                         <div class="avatar-circle">
                             <i class="bi bi-person-fill"></i>
                         </div>
-                        <span class="d-none d-md-block dropdown-toggle fw-semibold"
-                            style="color: var(--color-text-main);">{{ username }}</span>
+                        <span class="d-none d-md-block dropdown-toggle fw-semibold" style="color: var(--color-text-main);">{{ username }}</span>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile border-0 p-0 shadow-lg">
                         <li class="dropdown-header d-flex align-items-center p-3">
@@ -72,8 +64,7 @@
                                 <i class="bi bi-person-fill"></i>
                             </div>
                             <div class="d-flex flex-column text-start">
-                                <h6 class="mb-0 fw-bold" style="font-size: 15px; color: var(--color-text-main);">{{
-                                    username }}</h6>
+                                <h6 class="mb-0 fw-bold" style="font-size: 15px; color: var(--color-text-main);">{{username }}</h6>
                                 <span style="font-size: 13px; color: var(--color-text-muted);">{{ grupo }}</span>
                             </div>
                         </li>
