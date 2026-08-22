@@ -1,27 +1,87 @@
+# Importações de bibliotecas
+from flask import current_app
+import requests
 
 
-def get_lista_grupos_economicos():
-    return ['AEGEA', 'COSAN', 'GRUPO TESTE']
+class APIGruposEconomicosService:
 
+    @classmethod
+    def get_grupos_economicos_cadastrados(self):
+        try:
+            response = requests.get(f"{current_app.config['BACKEND_URL']}/v1/grupos-economicos/obtem-grupos-economicos-cadastrados")
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            raise e
 
-def get_grupo_economicos():
-    return {
-        'dsNome': 'GRUPO TESTE',
-        'idEmissor': [1,2,3,4,5,6,7],
-        'dsEmissor': ['Holding 1', 'Holding 2', 'Emissor 1', 'Emissor 2', 'Emissor 3', 'Emissor 4', 'Emissor 5'],
-        'icHolding': [1, 1, 0, 0, 0, 0, 0],
-        'icConsomeHolding': [0, 0, 1, 1, 1, 0, 0],
-        'idEmissorHoldingConsumo': [None, None, 1, 1, 2, None, None],
-        'dsSetor': ['Energia', 'Energia', 'Açucar e Álcool', 'O&G', 'Saneamento', 'Energia', 'Energia'],
-        'cdEmissorOC3': ['TESTE1', 'TESTE2', ['TESTE3', 'TESTE4'], 'TESTE5', 'TESTE6', 'TESTE7', 'TESTE8'],
-        'cdEmissorOC3': ['TESTE1', 'TESTE2', 'TESTE5', ['TESTE3', 'TESTE4'], 'TESTE6', 'TESTE7', 'TESTE8'],
-        'cdListaPapeis': [
-            {'Papel1': 1, 'Papel2': 1}, 
-            {'Papel3': 1},
-            {'Papel4': 1, 'Papel5': 1},
-            {'Papel6': 1},
-            {'Papel7': 1, 'Papel8': 1},
-            {'Papel9': 1},
-            {'Papel10': 1, 'Papel11': 0.5}
-        ]
-    }
+    @classmethod
+    def obtem_setores_cadastrados(self):
+        try:
+            response = requests.get(f"{current_app.config['BACKEND_URL']}/v1/grupos-economicos/obtem-setores-cadastrados")
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            raise e
+
+    @classmethod
+    def obtem_subsetores_cadastrados(self):
+        try:
+            response = requests.get(f"{current_app.config['BACKEND_URL']}/v1/grupos-economicos/obtem-subsetores-cadastrados")
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            raise e
+
+    @classmethod
+    def obtem_emissores_oc3(self, filtros: dict = None):
+        try:
+            response = requests.get(f"{current_app.config['BACKEND_URL']}/v1/grupos-economicos/obtem-emissores-oc3", params=filtros)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            raise e
+
+    @classmethod
+    def obtem_emissores_crims(self, filtros: dict = None):
+        try:
+            response = requests.get(f"{current_app.config['BACKEND_URL']}/v1/grupos-economicos/obtem-emissores-crims", params=filtros)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            raise e
+
+    @classmethod
+    def consultar_grupo_economico(self, filtros: dict = None):
+        try:
+            response = requests.get(f"{current_app.config['BACKEND_URL']}/v1/grupos-economicos/consultar-grupo-conomico", params=filtros)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            raise e
+
+    @classmethod
+    def registrar_grupo_economico(self, payload: dict):
+        try:
+            response = requests.post(f"{current_app.config['BACKEND_URL']}/v1/grupos-economicos/registrar-grupo-economico", json=payload)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            raise e
+
+    @classmethod
+    def atualizar_grupo_economico(self, payload: dict):
+        try:
+            response = requests.post(f"{current_app.config['BACKEND_URL']}/v1/grupos-economicos/atualizar-grupo-economico", json=payload)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            raise e
+
+    @classmethod
+    def deletar_grupo_economico(self, payload: dict):
+        try:
+            response = requests.post(f"{current_app.config['BACKEND_URL']}/v1/grupos-economicos/deletar-grupo-economico", json=payload)
+            response.raise_for_status()
+            return response.json()
+        except Exception as e:
+            raise e
