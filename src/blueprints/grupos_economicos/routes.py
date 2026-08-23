@@ -20,49 +20,107 @@ def grupos_economicos():
 @grupos_economicos_blueprint.route('/consultar', methods=['GET', 'POST'])
 @login_required
 def consultar_grupo_economico():
+    # Variaveis importantes para a página
+    grupos_cadastrados = APIGruposEconomicosService.get_grupos_economicos_cadastrados()
+    grupo_selecionado = None
+    organograma = None
+
     if request.method == 'POST':
-        # Começamos buscando os grupos econômicos cadastrados
-        grupos_cadastrados = APIGruposEconomicosService.get_grupos_economicos_cadastrados()
-
-        # Buscamos o nome do grupo econômico pesquisado
-        ds_grupo = 
-
-        # Em sequência buscamos a estrutura do grupo econômico
-        grupo = APIGruposEconomicosService.consultar_grupo_economico()
-
-        # Montamos a estrutura do grupo econômico para o organograma
-
-
-        # Renderizamos o template 
-        return render_template(
-            'grupos_economicos_consultar.html',
-            username=current_user.id,
-            grupo=getattr(current_user, 'grupo', ''),
-            grupos_cadastrados=grupos_cadastrados
-        )
-
-    else:
         try:
-            # Começamos buscando os grupos econômicos cadastrados
-            grupos_cadastrados = APIGruposEconomicosService.get_grupos_economicos_cadastrados()
+            # Começamos buscando o grupo selecionado e seus dados
+            grupo_selecionado = request.form.get('dsGrupo', '').strip()
+            dados_grupo = APIGruposEconomicosService.consultar_grupo_economico({'dsGrupo': grupo_selecionado})
+            
+            # Iteramos pelos emissores 
+            emissores = []
+            for item in dados_grupo:
+                # Buscamos o id do emissor e da holding de consumo
+                id_emissor = item.get('idEmissor')
+                id_holding = item.get('idEmissorHoldingConsumo')
+                ic_holding = item.get('icHolding')
 
-            # Retornamos rederizando o 
-            return render_template(
-                'grupos_economicos_consultar.html',
-                username=current_user.id,
-                grupo=getattr(current_user, 'grupo', ''),
-                grupos_cadastrados=grupos_cadastrados
-            )
+                # Buscamos os dados do modal
+                oc3 = ', '.join(item.get('cdEmissoresOC3')) if item.get('cdEmissoresOC3') else 'N/A'
+                crims = ', '.join(item.get('cdEmissoresCRIMS')) if item.get('cdEmissoresCRIMS') else 'N/A'
+                papeis = item.get('cdAtivosConsumos') if isinstance(item.get('cdAtivosConsumos'), dict) else {}
+
+                setor = str(item.get('dsSetor') or '').strip()
+                subsetor = str(item.get('dsSubsetor') or '').strip()
+
+                emissores.append({
+                    'id': id_emissor,
+                    'nome': str(item.get('dsEmissor') or '').strip(),
+                    'cnpj': str(item.get('cdCnpj') or '').strip(),
+                    'is_holding': bool(ic_holding),
+                    'parent_id': id_holding if id_holding != 0 else None,
+                    'setor': 'N/A' if setor.lower() in ['nan', 'none', 'null', ''] else setor,
+                    'subsetor': 'N/A' if subsetor.lower() in ['nan', 'none', 'null', ''] else subsetor,
+                    'oc3': oc3,
+                    'crims': crims,
+                    'papeis': papeis
+                })
+
+            # Separamos as holdings
+            holdings = [
+                emissor
+                for emissor in emissores
+                if emissor['is_holding']
+            ]
+
+            # Montamos um conjunto de mapeamento com os IDs das holdings
+            ids_holdings = {
+                holding['id']
+                for holding in holdings
+            }
+
+            # Separamos os emissores independentes
+            independentes = [
+                emissor
+                for emissor in emissores
+                if not emissor['is_holding']
+                and (not emissor['parent_id'] or emissor['parent_id'] not in ids_holdings)
+            ]
+
+            # Montamos a hierarquia
+            for holding in holdings:
+                holding['children'] = [
+                    emissor
+                    for emissor in emissores
+                    if emissor['parent_id'] == holding['id']
+                ]
+
+            top_holdings = [
+                holding
+                for holding in holdings
+                if not holding['parent_id']
+                or holding['parent_id'] not in ids_holdings
+            ]
+
+            # Coletamos os papéis de consumo de todos os emissores do grupo
+            papeis_grupo = {}
+            for emissor in emissores:
+                if emissor.get('papeis') and isinstance(emissor['papeis'], dict):
+                    for papel, consumo in emissor['papeis'].items():
+                        papeis_grupo[papel] = consumo
+
+            organograma = {
+                'nome_grupo': grupo_selecionado,
+                'holdings': top_holdings,
+                'independentes': independentes,
+                'total_emissores': len(emissores),
+                'papeis': papeis_grupo
+            }
 
         except Exception as e:
-            flash(f"{str(e)}", "error")
-            return redirect(url_for('grupos_economicos.grupos_economicos'))
+            flash(f"Erro ao consultar grupo econômico: {str(e)}", "error")
 
     return render_template(
         'grupos_economicos_consultar.html',
         username=current_user.id,
         grupo=getattr(current_user, 'grupo', ''),
-        grupos_cadastrados=grupos_cadastrados
+        grupos_cadastrados=grupos_cadastrados,
+        organograma=organograma,
+        ds_grupo_selecionado=grupo_selecionado
     )
 
 @grupos_economicos_blueprint.route('/alterar', methods=['GET', 'POST'])

@@ -7,16 +7,17 @@
   <h1 class="pagetitle-main">Consultar Grupo Econômico</h1>
 </div>
 
-<div class="card p-4">
+<!-- Card de Seleção e Busca -->
+<div class="card p-4 mb-4">
   <form id="formConsultarGrupo" method="POST" class="needs-validation">
     <div class="row align-items-end g-3">
       <div class="col-md-8 col-lg-6">
         <label for="selectGrupoEconomico" class="form-label">Grupo Econômico</label>
         <select class="form-select" id="selectGrupoEconomico" name="dsGrupo" required>
-          <option value="" disabled selected>Selecione um grupo econômico...</option>
+          <option value="" disabled {% if not ds_grupo_selecionado %}selected{% endif %}>Selecione um grupo econômico...</option>
           {% for item in grupos_cadastrados %}
             {% set grupo_nome = item.dsGrupo if item.dsGrupo is defined else item %}
-            <option value="{{ grupo_nome }}">{{ grupo_nome }}</option>
+            <option value="{{ grupo_nome }}" {% if ds_grupo_selecionado == grupo_nome %}selected{% endif %}>{{ grupo_nome }}</option>
           {% endfor %}
         </select>
       </div>
@@ -28,8 +29,134 @@
     </div>
   </form>
 </div>
+
+<!-- Organograma -->
+{% if organograma %}
+<div class="organograma-card mb-4">
+  <div class="organograma-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <h5 class="mb-1 fw-bold" style="color: var(--color-text-main); font-family: 'Raleway-SemiBold', sans-serif; text-decoration: none;">
+        <i class="bi bi-diagram-3 me-2" style="color: var(--color-accent);"></i>Estrutura do Grupo: {{ organograma.nome_grupo }}
+      </h5>
+      <span class="text-muted" style="font-size: 13px;">Clique em um emissor para visualizar os detalhes completos</span>
+    </div>
+    <span class="badge bg-secondary" style="font-size: 13px; font-weight: 500;">
+      {{ organograma.total_emissores }} emissor(es)
+    </span>
+  </div>
+
+  <div class="org-tree">
+    <ul>
+      <li>
+        <!-- Root Node (Grupo) -->
+        <button type="button" class="org-node root-node" data-bs-toggle="modal" data-bs-target="#modalEmissorDetalhes" data-nome="{{ organograma.nome_grupo }}" data-cnpj="N/A" data-setor="Grupo Econômico" data-subsetor="N/A" data-oc3="N/A" data-crims="N/A" data-papeis="{{ organograma.papeis | tojson | forceescape }}">
+          <div class="org-badge">Grupo</div>
+          <div class="org-title">{{ organograma.nome_grupo }}</div>
+          <div class="org-desc">Grupo Econômico</div>
+        </button>
+        
+        {% if organograma.holdings or organograma.independentes %}
+        <ul>
+          <!-- Holdings -->
+          {% for holding in organograma.holdings %}
+          <li>
+            <button type="button" class="org-node" data-bs-toggle="modal" data-bs-target="#modalEmissorDetalhes" 
+                    data-nome="{{ holding.nome }}" data-cnpj="{{ holding.cnpj }}" data-setor="{{ holding.setor }}" data-subsetor="{{ holding.subsetor }}" data-oc3="{{ holding.oc3 }}" data-crims="{{ holding.crims }}" data-papeis="{{ holding.papeis | tojson | forceescape }}">
+              <div class="org-badge badge-holding">Holding</div>
+              <div class="org-title">{{ holding.nome }}</div>
+              <div class="org-desc">{{ holding.setor or 'Setor não informado' }}</div>
+            </button>
+            
+            <!-- Filhos da Holding -->
+            {% if holding.children %}
+            <ul>
+              {% for child in holding.children %}
+              <li>
+                <button type="button" class="org-node" data-bs-toggle="modal" data-bs-target="#modalEmissorDetalhes" 
+                        data-nome="{{ child.nome }}" data-cnpj="{{ child.cnpj }}" data-setor="{{ child.setor }}" data-subsetor="{{ child.subsetor }}" data-oc3="{{ child.oc3 }}" data-crims="{{ child.crims }}" data-papeis="{{ child.papeis | tojson | forceescape }}">
+                  <div class="org-badge badge-emissor">Emissor</div>
+                  <div class="org-title">{{ child.nome }}</div>
+                  <div class="org-desc">{{ child.setor or 'Setor não informado' }}</div>
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </li>
+          {% endfor %}
+
+          <!-- Emissores Independentes -->
+          {% for indep in organograma.independentes %}
+          <li>
+            <button type="button" class="org-node" data-bs-toggle="modal" data-bs-target="#modalEmissorDetalhes" 
+                    data-nome="{{ indep.nome }}" data-cnpj="{{ indep.cnpj }}" data-setor="{{ indep.setor }}" data-subsetor="{{ indep.subsetor }}" data-oc3="{{ indep.oc3 }}" data-crims="{{ indep.crims }}" data-papeis="{{ indep.papeis | tojson | forceescape }}">
+              <div class="org-badge badge-emissor">Emissor</div>
+              <div class="org-title">{{ indep.nome }}</div>
+              <div class="org-desc">{{ indep.setor or 'Setor não informado' }}</div>
+            </button>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      </li>
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<!-- Modal Detalhes Emissor -->
+<div class="modal fade" id="modalEmissorDetalhes" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background-color: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 12px;">
+      <div class="modal-header" style="border-bottom: 1px solid var(--color-border);">
+        <h5 class="modal-title fw-bold" id="modalEmissorNome" style="color: var(--color-text-main); font-family: 'Raleway-SemiBold', sans-serif; text-decoration: none;">Detalhes do Emissor</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="mb-3 d-flex justify-content-between align-items-center">
+          <strong style="color: var(--color-text-main);">CNPJ:</strong>
+          <span id="modalEmissorCNPJ" class="text-muted"></span>
+        </div>
+        <div class="mb-3 d-flex justify-content-between align-items-center">
+          <strong style="color: var(--color-text-main);">Setor:</strong>
+          <span id="modalEmissorSetor" class="text-muted"></span>
+        </div>
+        <div class="mb-3 d-flex justify-content-between align-items-center">
+          <strong style="color: var(--color-text-main);">Subsetor:</strong>
+          <span id="modalEmissorSubsetor" class="text-muted"></span>
+        </div>
+        <div class="mb-3 d-flex justify-content-between align-items-center">
+          <strong style="color: var(--color-text-main);">Emissor OC3:</strong>
+          <span id="modalEmissorOC3" class="text-muted"></span>
+        </div>
+        <div class="mb-4 d-flex justify-content-between align-items-center">
+          <strong style="color: var(--color-text-main);">Emissor CRIMS:</strong>
+          <span id="modalEmissorCRIMS" class="text-muted"></span>
+        </div>
+        
+        <h6 class="fw-bold mb-3" style="color: var(--color-text-main);"><i class="bi bi-file-earmark-text me-2" style="color: var(--color-accent);"></i>Papéis de Consumo</h6>
+        <div class="table-responsive results-table-wrapper border rounded">
+          <table class="table table-hover align-middle mb-0 custom-modal-table text-center">
+            <thead>
+              <tr>
+                <th>Papel</th>
+                <th>% de Consumo</th>
+              </tr>
+            </thead>
+            <tbody id="modalTabelaPapeis">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('grupos_economicos.static', filename='css/grupos_economicos.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('grupos_economicos.static', filename='js/grupos_economicos.js') }}"></script>
 {% endblock %}

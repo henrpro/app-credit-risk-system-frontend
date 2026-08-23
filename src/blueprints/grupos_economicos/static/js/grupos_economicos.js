@@ -497,5 +497,78 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     }
+
+    // Lógica do Modal Detalhes do Emissor (Organograma)
+    const modalEmissorDetalhes = document.getElementById('modalEmissorDetalhes');
+    if (modalEmissorDetalhes) {
+        modalEmissorDetalhes.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            if (!button) return;
+            
+            const nome = button.getAttribute('data-nome') || '';
+            const cnpj = button.getAttribute('data-cnpj') || 'N/A';
+            const setor = button.getAttribute('data-setor') || 'N/A';
+            const subsetor = button.getAttribute('data-subsetor') || 'N/A';
+            const oc3 = button.getAttribute('data-oc3') || 'N/A';
+            const crims = button.getAttribute('data-crims') || 'N/A';
+            let papeis = {};
+            try {
+                papeis = JSON.parse(button.getAttribute('data-papeis') || '{}');
+            } catch (e) {
+                console.error("Erro ao fazer parse dos papeis", e);
+            }
+            
+            function cleanVal(val) {
+                if (!val || ['none', 'nan', 'null', 'n/a', 'undefined', ''].includes(String(val).trim().toLowerCase())) {
+                    return 'N/A';
+                }
+                return String(val).trim();
+            }
+
+            const modalTitle = document.getElementById('modalEmissorNome');
+            if (modalTitle) modalTitle.textContent = cleanVal(nome);
+
+            const modalCNPJ = document.getElementById('modalEmissorCNPJ');
+            if (modalCNPJ) {
+                const cleanedCnpj = cleanVal(cnpj);
+                modalCNPJ.textContent = cleanedCnpj !== 'N/A' ? maskCNPJ(cleanedCnpj) : 'N/A';
+            }
+
+            const modalSetor = document.getElementById('modalEmissorSetor');
+            if (modalSetor) modalSetor.textContent = cleanVal(setor);
+
+            const modalSubsetor = document.getElementById('modalEmissorSubsetor');
+            if (modalSubsetor) modalSubsetor.textContent = cleanVal(subsetor);
+
+            const modalOC3 = document.getElementById('modalEmissorOC3');
+            if (modalOC3) modalOC3.textContent = cleanVal(oc3);
+
+            const modalCRIMS = document.getElementById('modalEmissorCRIMS');
+            if (modalCRIMS) modalCRIMS.textContent = cleanVal(crims);
+            
+            const tbody = document.getElementById('modalTabelaPapeis');
+            if (tbody) {
+                tbody.innerHTML = '';
+                if (papeis && Object.keys(papeis).length > 0) {
+                    for (const [papel, consumo] of Object.entries(papeis)) {
+                        const tr = document.createElement('tr');
+                        
+                        const tdPapel = document.createElement('td');
+                        tdPapel.textContent = papel;
+                        tr.appendChild(tdPapel);
+                        
+                        const tdConsumo = document.createElement('td');
+                        const val = parseFloat(consumo);
+                        tdConsumo.textContent = !isNaN(val) ? (val * 100).toFixed(0) + '%' : consumo;
+                        tr.appendChild(tdConsumo);
+                        
+                        tbody.appendChild(tr);
+                    }
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="2" class="text-muted py-3">Nenhum papel de consumo associado.</td></tr>';
+                }
+            }
+        });
+    }
 });
 
