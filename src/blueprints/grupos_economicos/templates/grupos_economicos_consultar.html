@@ -40,66 +40,102 @@
       </h5>
       <span class="text-muted" style="font-size: 13px;">Clique em um emissor para visualizar os detalhes completos</span>
     </div>
-    <span class="badge bg-secondary" style="font-size: 13px; font-weight: 500;">
-      {{ organograma.total_emissores }} emissor(es)
-    </span>
+    <div class="d-flex align-items-center gap-3">
+      <span class="badge bg-secondary" style="font-size: 13px; font-weight: 500;">
+        {{ organograma.total_emissores }} emissor(es)
+      </span>
+    </div>
   </div>
 
-  <div class="org-tree">
-    <ul>
-      <li>
-        <!-- Root Node (Grupo) -->
-        <button type="button" class="org-node root-node" data-bs-toggle="modal" data-bs-target="#modalEmissorDetalhes" data-nome="{{ organograma.nome_grupo }}" data-cnpj="N/A" data-setor="Grupo Econômico" data-subsetor="N/A" data-oc3="N/A" data-crims="N/A" data-papeis="{{ organograma.papeis | tojson | forceescape }}">
-          <div class="org-badge">Grupo</div>
-          <div class="org-title">{{ organograma.nome_grupo }}</div>
-          <div class="org-desc">Grupo Econômico</div>
-        </button>
-        
-        {% if organograma.holdings or organograma.independentes %}
-        <ul>
-          <!-- Holdings -->
-          {% for holding in organograma.holdings %}
-          <li>
-            <button type="button" class="org-node" data-bs-toggle="modal" data-bs-target="#modalEmissorDetalhes" 
-                    data-nome="{{ holding.nome }}" data-cnpj="{{ holding.cnpj }}" data-setor="{{ holding.setor }}" data-subsetor="{{ holding.subsetor }}" data-oc3="{{ holding.oc3 }}" data-crims="{{ holding.crims }}" data-papeis="{{ holding.papeis | tojson | forceescape }}">
-              <div class="org-badge badge-holding">Holding</div>
-              <div class="org-title">{{ holding.nome }}</div>
-              <div class="org-desc">{{ holding.setor or 'Setor não informado' }}</div>
-            </button>
-            
-            <!-- Filhos da Holding -->
-            {% if holding.children %}
-            <ul>
-              {% for child in holding.children %}
-              <li>
-                <button type="button" class="org-node" data-bs-toggle="modal" data-bs-target="#modalEmissorDetalhes" 
-                        data-nome="{{ child.nome }}" data-cnpj="{{ child.cnpj }}" data-setor="{{ child.setor }}" data-subsetor="{{ child.subsetor }}" data-oc3="{{ child.oc3 }}" data-crims="{{ child.crims }}" data-papeis="{{ child.papeis | tojson | forceescape }}">
-                  <div class="org-badge badge-emissor">Emissor</div>
-                  <div class="org-title">{{ child.nome }}</div>
-                  <div class="org-desc">{{ child.setor or 'Setor não informado' }}</div>
-                </button>
-              </li>
-              {% endfor %}
-            </ul>
-            {% endif %}
-          </li>
-          {% endfor %}
+  <!-- Container do Viewport Interativo com Pan & Zoom -->
+  <div class="org-viewport-container" id="orgViewportContainer">
+    <!-- Barra de Controles Flutuante -->
+    <div class="org-controls-bar">
+      <button type="button" class="btn-org-control" id="btnOrgZoomIn" title="Aumentar Zoom (+)">
+        <i class="bi bi-zoom-in"></i>
+      </button>
+      <span class="org-zoom-level" id="orgZoomLevel">100%</span>
+      <button type="button" class="btn-org-control" id="btnOrgZoomOut" title="Diminuir Zoom (-)">
+        <i class="bi bi-zoom-out"></i>
+      </button>
+      <div class="org-controls-divider"></div>
+      <button type="button" class="btn-org-control" id="btnOrgReset" title="Ajustar à Tela">
+        <i class="bi bi-aspect-ratio"></i>
+      </button>
+      <button type="button" class="btn-org-control" id="btnOrgCenter" title="Centralizar">
+        <i class="bi bi-arrows-collapse"></i>
+      </button>
+      <button type="button" class="btn-org-control" id="btnOrgFullscreen" title="Tela Cheia">
+        <i class="bi bi-arrows-fullscreen"></i>
+      </button>
+    </div>
 
-          <!-- Emissores Independentes -->
-          {% for indep in organograma.independentes %}
-          <li>
-            <button type="button" class="org-node" data-bs-toggle="modal" data-bs-target="#modalEmissorDetalhes" 
-                    data-nome="{{ indep.nome }}" data-cnpj="{{ indep.cnpj }}" data-setor="{{ indep.setor }}" data-subsetor="{{ indep.subsetor }}" data-oc3="{{ indep.oc3 }}" data-crims="{{ indep.crims }}" data-papeis="{{ indep.papeis | tojson | forceescape }}">
-              <div class="org-badge badge-emissor">Emissor</div>
-              <div class="org-title">{{ indep.nome }}</div>
-              <div class="org-desc">{{ indep.setor or 'Setor não informado' }}</div>
-            </button>
-          </li>
-          {% endfor %}
-        </ul>
-        {% endif %}
-      </li>
-    </ul>
+    <!-- Badge Informativo de Ajuda -->
+    <div class="org-pan-help-badge">
+      <i class="bi bi-mouse me-1"></i> Use a rodinha para zoom &bull; Segure e arraste para navegar
+    </div>
+
+    <!-- Viewport Navegável -->
+    <div class="org-tree-viewport" id="orgTreeViewport">
+      <div class="org-tree-content" id="orgTreeContent">
+        <div class="org-tree">
+          <ul>
+            <li>
+              <!-- Root Node (Grupo) -->
+              <button type="button" class="org-node root-node" data-bs-toggle="modal" data-bs-target="#modalEmissorDetalhes" data-nome="{{ organograma.nome_grupo }}" data-cnpj="N/A" data-setor="Grupo Econômico" data-subsetor="N/A" data-oc3="N/A" data-crims="N/A" data-papeis="{{ organograma.papeis | tojson | forceescape }}">
+                <div class="org-badge">Grupo</div>
+                <div class="org-title">{{ organograma.nome_grupo }}</div>
+                <div class="org-desc">Grupo Econômico</div>
+              </button>
+              
+              {% if organograma.holdings or organograma.independentes %}
+              <ul>
+                <!-- Holdings -->
+                {% for holding in organograma.holdings %}
+                <li>
+                  <button type="button" class="org-node" data-bs-toggle="modal" data-bs-target="#modalEmissorDetalhes" 
+                          data-nome="{{ holding.nome }}" data-cnpj="{{ holding.cnpj }}" data-setor="{{ holding.setor }}" data-subsetor="{{ holding.subsetor }}" data-oc3="{{ holding.oc3 }}" data-crims="{{ holding.crims }}" data-papeis="{{ holding.papeis | tojson | forceescape }}">
+                    <div class="org-badge badge-holding">Holding</div>
+                    <div class="org-title">{{ holding.nome }}</div>
+                    <div class="org-desc">{{ holding.setor or 'Setor não informado' }}</div>
+                  </button>
+                  
+                  <!-- Filhos da Holding -->
+                  {% if holding.children %}
+                  <ul>
+                    {% for child in holding.children %}
+                    <li>
+                      <button type="button" class="org-node" data-bs-toggle="modal" data-bs-target="#modalEmissorDetalhes" 
+                              data-nome="{{ child.nome }}" data-cnpj="{{ child.cnpj }}" data-setor="{{ child.setor }}" data-subsetor="{{ child.subsetor }}" data-oc3="{{ child.oc3 }}" data-crims="{{ child.crims }}" data-papeis="{{ child.papeis | tojson | forceescape }}">
+                        <div class="org-badge badge-emissor">Emissor</div>
+                        <div class="org-title">{{ child.nome }}</div>
+                        <div class="org-desc">{{ child.setor or 'Setor não informado' }}</div>
+                      </button>
+                    </li>
+                    {% endfor %}
+                  </ul>
+                  {% endif %}
+                </li>
+                {% endfor %}
+
+                <!-- Emissores Independentes -->
+                {% for indep in organograma.independentes %}
+                <li>
+                  <button type="button" class="org-node" data-bs-toggle="modal" data-bs-target="#modalEmissorDetalhes" 
+                          data-nome="{{ indep.nome }}" data-cnpj="{{ indep.cnpj }}" data-setor="{{ indep.setor }}" data-subsetor="{{ indep.subsetor }}" data-oc3="{{ indep.oc3 }}" data-crims="{{ indep.crims }}" data-papeis="{{ indep.papeis | tojson | forceescape }}">
+                    <div class="org-badge badge-emissor">Emissor</div>
+                    <div class="org-title">{{ indep.nome }}</div>
+                    <div class="org-desc">{{ indep.setor or 'Setor não informado' }}</div>
+                  </button>
+                </li>
+                {% endfor %}
+              </ul>
+              {% endif %}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 {% endif %}

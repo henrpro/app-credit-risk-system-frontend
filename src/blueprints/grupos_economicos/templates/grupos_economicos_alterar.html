@@ -37,19 +37,23 @@
   <form id="formCadastrarGrupo" method="POST" class="needs-validation" novalidate>
     <input type="hidden" name="action" value="atualizar">
     <input type="hidden" name="dsGrupoOriginal" value="{{ grupo_selecionado }}">
+    <input type="hidden" name="idGrupo" value="{{ id_grupo or '' }}">
 
-    <!-- Linha do Nome do Grupo e Botão Adicionar Emissor -->
+    <!-- Linha do Nome do Grupo e Botões de Ação -->
     <div class="row align-items-end g-3">
-      <div class="col-md-8 col-lg-6">
+      <div class="col-md-6 col-lg-6">
         <label for="nomeGrupo" class="form-label">Nome do Grupo <span class="text-danger">*</span></label>
         <input type="text" class="form-control" id="nomeGrupo" name="nomeGrupo" value="{{ grupo_selecionado }}" placeholder="Digite o nome do grupo econômico" required>
         <div class="invalid-feedback">
           Por favor, preencha o nome do grupo econômico.
         </div>
       </div>
-      <div class="col-md-4 col-lg-3">
+      <div class="col-md-6 col-lg-6 d-flex gap-2 flex-wrap">
         <button type="button" id="btnAdicionarEmissor" class="btn-associar">
           <i class="bi bi-plus-circle"></i> Adicionar Emissor
+        </button>
+        <button type="button" id="btnDeletarGrupo" class="btn-deletar-grupo" data-bs-toggle="modal" data-bs-target="#modalConfirmarDeletarGrupo">
+          <i class="bi bi-trash"></i> Deletar Grupo
         </button>
       </div>
     </div>
@@ -109,11 +113,11 @@
           </div>
           <div class="col-md-4">
             <label class="form-label">Holding de Consumo</label>
-            <select class="form-select select-holding-consumo" name="holdingConsumo[]" {% if e.icConsomeHolding != 'sim' %}disabled{% endif %}>
-              <option value="Nenhuma">Nenhuma</option>
-              {% for h in holdings_nomes %}
-                {% if h != e.dsEmissor %}
-                  <option value="{{ h }}" {% if e.dsEmissorHoldingConsumo == h %}selected{% endif %}>{{ h }}</option>
+            <select class="form-select select-holding-consumo" name="holdingConsumo[]">
+              <option value="">Nenhuma</option>
+              {% for h in holdings %}
+                {% if h.nome != e.dsEmissor and (not h.id or not e.idEmissor or h.id != e.idEmissor) %}
+                  <option value="{{ h.id or h.nome }}" {% if (e.idEmissorHoldingConsumo and e.idEmissorHoldingConsumo == h.id) or (e.dsEmissorHoldingConsumo and e.dsEmissorHoldingConsumo == h.nome) %}selected{% endif %}>{{ h.nome }}</option>
                 {% endif %}
               {% endfor %}
             </select>
@@ -486,6 +490,34 @@
         <button type="button" class="btn btn-orange px-4" id="btnConfirmarCRIMS">
           <i class="bi bi-check-lg me-1"></i>Confirmar Associação
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmar Exclusão de Grupo Econômico -->
+<div class="modal fade" id="modalConfirmarDeletarGrupo" tabindex="-1" aria-labelledby="modalConfirmarDeletarGrupoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fs-5 text-danger" id="modalConfirmarDeletarGrupoLabel">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmar Exclusão
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">Tem certeza que deseja deletar o grupo econômico <strong id="deleteGrupoNomeDisplay">{{ grupo_selecionado }}</strong>?</p>
+        <p class="text-danger small mb-0"><i class="bi bi-info-circle me-1"></i>Esta ação excluirá o grupo e todas as suas associações e não poderá ser desfeita.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <form method="POST" action="{{ url_for('grupos_economicos.deletar_grupo_economico') }}" class="d-inline" id="formDeletarGrupo">
+          <input type="hidden" name="dsGrupo" value="{{ grupo_selecionado }}">
+          <input type="hidden" name="idGrupo" value="{{ id_grupo or '' }}">
+          <button type="submit" class="btn btn-danger d-flex align-items-center gap-2" id="btnConfirmarExclusao">
+            <i class="bi bi-trash"></i> Sim, Deletar Grupo
+          </button>
+        </form>
       </div>
     </div>
   </div>

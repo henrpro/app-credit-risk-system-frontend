@@ -52,9 +52,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const isHoldingSelect = block.querySelector('.select-is-holding');
             const nameInput = block.querySelector('.input-nome-emissor');
+            const idInput = block.querySelector('input[name="idEmissor[]"]');
+            const idVal = idInput && idInput.value ? idInput.value.trim() : '';
 
             if (isHoldingSelect && isHoldingSelect.value === 'sim' && nameInput && nameInput.value.trim() !== '') {
-                holdings.push(nameInput.value.trim());
+                holdings.push({
+                    id: idVal,
+                    nome: nameInput.value.trim()
+                });
             }
 
             // Atualiza os nomes dos inputs ocultos com o índice correto
@@ -64,15 +69,24 @@ document.addEventListener('DOMContentLoaded', function () {
         // Atualiza as opções do dropdown "Holding de Consumo" em todos os blocos
         allBlocks.forEach(block => {
             const consumoSelect = block.querySelector('.select-holding-consumo');
+            const consomeSelect = block.querySelector('.select-consome-holding');
+            const cardIdInput = block.querySelector('input[name="idEmissor[]"]');
+            const cardId = cardIdInput && cardIdInput.value ? cardIdInput.value.trim() : '';
+            const cardName = block.querySelector('.input-nome-emissor')?.value?.trim() || '';
+
             if (consumoSelect) {
                 const currentValue = consumoSelect.value;
                 consumoSelect.innerHTML = '<option value="">Nenhuma</option>';
 
-                holdings.forEach(holdingName => {
+                holdings.forEach(h => {
+                    // Não exibe o próprio emissor na lista de holdings dele mesmo
+                    if (h.nome === cardName || (h.id && cardId && String(h.id) === String(cardId))) {
+                        return;
+                    }
                     const option = document.createElement('option');
-                    option.value = holdingName;
-                    option.textContent = holdingName;
-                    if (holdingName === currentValue) {
+                    option.value = h.id ? String(h.id) : h.nome;
+                    option.textContent = h.nome;
+                    if (currentValue && (String(option.value) === String(currentValue) || option.textContent === String(currentValue))) {
                         option.selected = true;
                     }
                     consumoSelect.appendChild(option);
@@ -412,11 +426,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (consomeHoldingSelect && holdingConsumoSelect) {
             consomeHoldingSelect.addEventListener('change', function () {
-                if (consomeHoldingSelect.value === 'sim') {
-                    holdingConsumoSelect.disabled = false;
+                if (consomeHoldingSelect.value === 'nao') {
+                    holdingConsumoSelect.value = '';
+                }
+            });
+
+            holdingConsumoSelect.addEventListener('change', function () {
+                if (holdingConsumoSelect.value !== '') {
+                    consomeHoldingSelect.value = 'sim';
                 } else {
-                    holdingConsumoSelect.value = 'Nenhuma';
-                    holdingConsumoSelect.disabled = true;
+                    consomeHoldingSelect.value = 'nao';
                 }
             });
         }
@@ -542,9 +561,19 @@ document.addEventListener('DOMContentLoaded', function () {
             if (btnSalvarGrupo) {
                 setTimeout(() => {
                     btnSalvarGrupo.disabled = true;
-                    btnSalvarGrupo.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Cadastrando grupo econômico...';
+                    btnSalvarGrupo.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Salvando...';
                 }, 0);
             }
+        });
+    }
+
+    // Formulário de Exclusão de Grupo Econômico
+    const formDeletarGrupo = document.getElementById('formDeletarGrupo');
+    const btnConfirmarExclusao = document.getElementById('btnConfirmarExclusao');
+    if (formDeletarGrupo && btnConfirmarExclusao) {
+        formDeletarGrupo.addEventListener('submit', function () {
+            btnConfirmarExclusao.disabled = true;
+            btnConfirmarExclusao.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Deletando...';
         });
     }
 
@@ -618,6 +647,229 @@ document.addEventListener('DOMContentLoaded', function () {
                     tbody.innerHTML = '<tr><td colspan="2" class="text-muted py-3">Nenhum papel de consumo associado.</td></tr>';
                 }
             }
+        });
+    }
+
+    // =========================================================================
+    // Lógica de Zoom, Pan (Arrastar) e Escala Automática do Organograma
+    // =========================================================================
+    const orgContainer = document.getElementById('orgViewportContainer');
+    const orgViewport = document.getElementById('orgTreeViewport');
+    const orgContent = document.getElementById('orgTreeContent');
+    const orgZoomLevel = document.getElementById('orgZoomLevel');
+    const btnOrgZoomIn = document.getElementById('btnOrgZoomIn');
+    const btnOrgZoomOut = document.getElementById('btnOrgZoomOut');
+    const btnOrgReset = document.getElementById('btnOrgReset');
+    const btnOrgCenter = document.getElementById('btnOrgCenter');
+    const btnOrgFullscreen = document.getElementById('btnOrgFullscreen');
+
+    if (orgViewport && orgContent) {
+        let scale = 1.0;
+        let translateX = 0;
+        let translateY = 0;
+        const minScale = 0.15;
+        const maxScale = 3.0;
+
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let hasDragged = false;
+        const dragThreshold = 6;
+
+        function applyTransform(withTransition = false) {
+            if (withTransition) {
+                orgContent.style.transition = 'transform 0.25s cubic-bezier(0.2, 0, 0, 1)';
+            } else {
+                orgContent.style.transition = 'none';
+            }
+            orgContent.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+            if (orgZoomLevel) {
+                orgZoomLevel.textContent = `${Math.round(scale * 100)}%`;
+            }
+        }
+
+        function fitToScreen(withTransition = true) {
+            if (!orgViewport || !orgContent) return;
+
+            const viewportWidth = orgViewport.clientWidth;
+            const viewportHeight = orgViewport.clientHeight;
+            if (viewportWidth === 0 || viewportHeight === 0) return;
+
+            // Reset temporário para medir dimensões naturais
+            orgContent.style.transition = 'none';
+            orgContent.style.transform = 'none';
+
+            const treeWidth = orgContent.offsetWidth || orgContent.scrollWidth || 1000;
+            const treeHeight = orgContent.offsetHeight || orgContent.scrollHeight || 500;
+
+            const paddingX = 40;
+            const paddingY = 40;
+            const availWidth = Math.max(100, viewportWidth - paddingX * 2);
+            const availHeight = Math.max(100, viewportHeight - paddingY * 2);
+
+            // Reduz escala se a árvore for maior que o viewport
+            let autoScale = 1.0;
+            if (treeWidth > availWidth || treeHeight > availHeight) {
+                const scaleX = availWidth / treeWidth;
+                const scaleY = availHeight / treeHeight;
+                autoScale = Math.min(scaleX, scaleY);
+            }
+
+            scale = Math.max(minScale, Math.min(1.0, autoScale));
+
+            const scaledWidth = treeWidth * scale;
+            const scaledHeight = treeHeight * scale;
+
+            translateX = (viewportWidth - scaledWidth) / 2;
+            if (scaledHeight < viewportHeight - 60) {
+                translateY = (viewportHeight - scaledHeight) / 2;
+            } else {
+                translateY = 30;
+            }
+
+            applyTransform(withTransition);
+        }
+
+        function centerTree(withTransition = true) {
+            const viewportWidth = orgViewport.clientWidth;
+            const viewportHeight = orgViewport.clientHeight;
+            const treeWidth = (orgContent.offsetWidth || orgContent.scrollWidth);
+            const treeHeight = (orgContent.offsetHeight || orgContent.scrollHeight);
+
+            translateX = (viewportWidth - (treeWidth * scale)) / 2;
+            translateY = Math.max(20, (viewportHeight - (treeHeight * scale)) / 2);
+            applyTransform(withTransition);
+        }
+
+        function zoomAtPoint(factor, clientX, clientY, withTransition = false) {
+            const rect = orgViewport.getBoundingClientRect();
+            const mouseX = clientX - rect.left;
+            const mouseY = clientY - rect.top;
+
+            const newScale = Math.max(minScale, Math.min(maxScale, scale * factor));
+            if (newScale === scale) return;
+
+            translateX = mouseX - (mouseX - translateX) * (newScale / scale);
+            translateY = mouseY - (mouseY - translateY) * (newScale / scale);
+            scale = newScale;
+
+            applyTransform(withTransition);
+        }
+
+        // Zoom via roda do mouse (wheel)
+        orgViewport.addEventListener('wheel', function (e) {
+            e.preventDefault();
+            const factor = e.deltaY < 0 ? 1.12 : (1 / 1.12);
+            zoomAtPoint(factor, e.clientX, e.clientY, false);
+        }, { passive: false });
+
+        // Pan / Navegação via clique e arraste
+        orgViewport.addEventListener('mousedown', function (e) {
+            if (e.button !== 0) return; // Apenas botão principal (esquerdo)
+            isDragging = true;
+            hasDragged = false;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            startX = e.clientX - translateX;
+            startY = e.clientY - translateY;
+            orgViewport.classList.add('is-dragging');
+        });
+
+        window.addEventListener('mousemove', function (e) {
+            if (!isDragging) return;
+            const dx = Math.abs(e.clientX - dragStartX);
+            const dy = Math.abs(e.clientY - dragStartY);
+            if (!hasDragged && (dx > dragThreshold || dy > dragThreshold)) {
+                hasDragged = true;
+            }
+
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            applyTransform(false);
+        });
+
+        window.addEventListener('mouseup', function (e) {
+            if (isDragging) {
+                isDragging = false;
+                orgViewport.classList.remove('is-dragging');
+                setTimeout(() => {
+                    hasDragged = false;
+                }, 50);
+            }
+        });
+
+        // Impede que o clique dispare o modal se o usuário estava arrastando a tela
+        orgContent.addEventListener('click', function (e) {
+            if (hasDragged) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            }
+        }, true);
+
+        // Controles de Zoom
+        if (btnOrgZoomIn) {
+            btnOrgZoomIn.addEventListener('click', function () {
+                const rect = orgViewport.getBoundingClientRect();
+                zoomAtPoint(1.2, rect.left + rect.width / 2, rect.top + rect.height / 2, true);
+            });
+        }
+
+        if (btnOrgZoomOut) {
+            btnOrgZoomOut.addEventListener('click', function () {
+                const rect = orgViewport.getBoundingClientRect();
+                zoomAtPoint(1 / 1.2, rect.left + rect.width / 2, rect.top + rect.height / 2, true);
+            });
+        }
+
+        if (btnOrgReset) {
+            btnOrgReset.addEventListener('click', function () {
+                fitToScreen(true);
+            });
+        }
+
+        if (btnOrgCenter) {
+            btnOrgCenter.addEventListener('click', function () {
+                centerTree(true);
+            });
+        }
+
+        if (btnOrgFullscreen && orgContainer) {
+            btnOrgFullscreen.addEventListener('click', function () {
+                const isFull = orgContainer.classList.toggle('is-fullscreen');
+                const icon = btnOrgFullscreen.querySelector('i');
+                if (icon) {
+                    icon.className = isFull ? 'bi bi-fullscreen-exit' : 'bi bi-arrows-fullscreen';
+                }
+                setTimeout(() => {
+                    fitToScreen(true);
+                }, 100);
+            });
+
+            // Sair do modo tela cheia ao pressionar ESC
+            window.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && orgContainer.classList.contains('is-fullscreen')) {
+                    orgContainer.classList.remove('is-fullscreen');
+                    const icon = btnOrgFullscreen.querySelector('i');
+                    if (icon) {
+                        icon.className = 'bi bi-arrows-fullscreen';
+                    }
+                    setTimeout(() => {
+                        fitToScreen(true);
+                    }, 100);
+                }
+            });
+        }
+
+        // Inicialização automática com auto-scale
+        setTimeout(() => {
+            fitToScreen(false);
+        }, 100);
+
+        window.addEventListener('resize', function () {
+            fitToScreen(false);
         });
     }
 });

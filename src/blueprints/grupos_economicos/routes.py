@@ -46,11 +46,12 @@ def consultar_grupo_economico():
 
                 setor = str(item.get('dsSetor') or '').strip()
                 subsetor = str(item.get('dsSubsetor') or '').strip()
+                cnpj_raw = str(item.get('cdCnpj') or '').strip()
 
                 emissores.append({
                     'id': id_emissor,
                     'nome': str(item.get('dsEmissor') or '').strip(),
-                    'cnpj': str(item.get('cdCnpj') or '').strip(),
+                    'cnpj': 'N/A' if cnpj_raw.lower() in ['nan', 'none', 'null', ''] else cnpj_raw,
                     'is_holding': bool(ic_holding),
                     'parent_id': id_holding if id_holding != 0 else None,
                     'setor': 'N/A' if setor.lower() in ['nan', 'none', 'null', ''] else setor,
@@ -126,13 +127,15 @@ def consultar_grupo_economico():
 @grupos_economicos_blueprint.route('/alterar', methods=['GET', 'POST'])
 @login_required
 def alterar_grupo_economico():
+    # Variáveis importantes para a rota
     grupos_cadastrados = APIGruposEconomicosService.get_grupos_economicos_cadastrados()
     setores = APIGruposEconomicosService.obtem_setores_cadastrados()
     subsetores = APIGruposEconomicosService.obtem_subsetores_cadastrados()
 
     grupo_selecionado = None
     dados_grupo = None
-    holdings_nomes = []
+    holdings = []
+    id_grupo = None
 
     if request.method == 'POST':
         action = request.form.get('action')
@@ -140,36 +143,53 @@ def alterar_grupo_economico():
         # Fluxo de Pesquisar Grupo Econômico para Edição
         if action == 'pesquisar':
             try:
+                # Começamos buscando o grupo selecionado e seus dados
                 grupo_selecionado = request.form.get('dsGrupo', '').strip()
                 dados_raw = APIGruposEconomicosService.consultar_grupo_economico({'dsGrupo': grupo_selecionado})
 
-                # Mapeamento de idEmissor para dsEmissor para identificar a holding de consumo pelo nome
-                id_to_nome = {
-                    item.get('idEmissor'): str(item.get('dsEmissor') or '').strip()
-                    for item in dados_raw
-                    if item.get('idEmissor')
-                }
+                # Buscamos o id do grupo
+                id_grupo = dados_raw[0].get('idGrupo') if dados_raw else None
 
+                # Iteramos pelos emissores 
                 dados_grupo = []
                 for item in dados_raw:
+                    # Começamos buscando o id da holding
                     id_holding = item.get('idEmissorHoldingConsumo')
-                    holding_nome = id_to_nome.get(id_holding) if id_holding and id_holding != 0 else ''
+                    cnpj_raw = str(item.get('cdCnpj') or '').strip()
+                    setor_raw = str(item.get('dsSetor') or '').strip()
+                    subsetor_raw = str(item.get('dsSubsetor') or '').strip()
 
+                    ic_holding_raw = item.get('icHolding')
+                    is_holding = bool(ic_holding_raw) and str(ic_holding_raw).lower() not in ['0', 'nao', 'false', 'none', 'null', 'nan']
+
+                    ic_consome_raw = item.get('icConsomeHolding')
+                    is_consome = bool(ic_consome_raw) and str(ic_consome_raw).lower() not in ['0', 'nao', 'false', 'none', 'null', 'nan']
+
+                    id_holding_clean = id_holding if id_holding and str(id_holding).lower() not in ['0', 'none', 'nan', 'null'] else None
+
+                    # Montamos o dicionário com os dados do emissor
                     dados_grupo.append({
+                        # Nome do emissor e Cnpj
                         'idEmissor': item.get('idEmissor'),
                         'dsEmissor': str(item.get('dsEmissor') or '').strip(),
-                        'cdCnpj': str(item.get('cdCnpj') or '').strip(),
-                        'icHolding': 'sim' if item.get('icHolding') else 'nao',
-                        'icConsomeHolding': 'sim' if item.get('icConsomeHolding') else 'nao',
-                        'dsEmissorHoldingConsumo': holding_nome or 'Nenhuma',
-                        'dsSetor': str(item.get('dsSetor') or '').strip(),
-                        'dsSubsetor': str(item.get('dsSubsetor') or '').strip(),
+                        'cdCnpj': '' if cnpj_raw.lower() in ['nan', 'none', 'null', ''] else cnpj_raw,
+
+                        # Buscamos se o emissor é uma holding e se consome de alguma holding
+                        'icHolding': 'sim' if is_holding else 'nao',
+                        'icConsomeHolding': 'sim' if is_consome else 'nao',
+                        'idEmissorHoldingConsumo': id_holding_clean,
+
+                        # Buscamos o setor e subsetor cadastrados
+                        'dsSetor': '' if setor_raw.lower() in ['nan', 'none', 'null', ''] else setor_raw,
+                        'dsSubsetor': '' if subsetor_raw.lower() in ['nan', 'none', 'null', ''] else subsetor_raw,
+
+                        # Montamos a lista de emissores OC3 e CRIMS
                         'cdEmissoresOC3': item.get('cdEmissoresOC3') if isinstance(item.get('cdEmissoresOC3'), list) else [],
                         'cdEmissoresCRIMS': item.get('cdEmissoresCRIMS') if isinstance(item.get('cdEmissoresCRIMS'), list) else []
                     })
 
-                holdings_nomes = [
-                    emissor['dsEmissor']
+                holdings = [
+                    {'id': emissor['idEmissor'], 'nome': emissor['dsEmissor']}
                     for emissor in dados_grupo
                     if emissor['icHolding'] == 'sim' and emissor['dsEmissor']
                 ]
@@ -180,7 +200,12 @@ def alterar_grupo_economico():
         # Fluxo de Salvar Alterações do Grupo
         elif action == 'atualizar':
             try:
+                # Começamos buscando o id e nome do grupo econômico
+                id_grupo = int(request.form.get('idGrupo', '').strip())
                 ds_grupo = request.form.get('nomeGrupo', '').strip()
+
+                # Depois pegamos os dados dos emissores
+                ids_emissores = request.form.getlist('idEmissor[]')
                 cnpjs = request.form.getlist('cnpjEmissor[]')
                 nomes = request.form.getlist('nomeEmissor[]')
                 is_holdings = request.form.getlist('isHolding[]')
@@ -189,28 +214,66 @@ def alterar_grupo_economico():
                 setores_list = request.form.getlist('setorEmissor[]')
                 subsetores_list = request.form.getlist('subsetorEmissor[]')
 
+                # Mapeamento de nome -> id caso algum emissor holding tenha vindo como nome
+                nome_to_id = {
+                    nomes[j].strip(): int(ids_emissores[j].strip())
+                    for j in range(min(len(nomes), len(ids_emissores)))
+                    if ids_emissores[j] and ids_emissores[j].strip().isdigit()
+                }
+
+                # Iteramos pelos emissores para montar o payload
                 emissores = []
                 for i, nome in enumerate(nomes):
-                    holding_consumo = (
+                    # Buscamos o id do emissor
+                    id_emissor = (
+                        int(ids_emissores[i].strip()) 
+                        if i < len(ids_emissores) and ids_emissores[i] and ids_emissores[i].strip().isdigit()
+                        else None
+                        )
+
+                    # Começamos buscando a holding de consumo do emissor diretamente pelo ID
+                    holding_consumo_val = (
                         holdings_consumo[i].strip()
-                        if i < len(holdings_consumo) and holdings_consumo[i] and holdings_consumo[i] != 'Nenhuma'
+                        if i < len(holdings_consumo) and holdings_consumo[i] and holdings_consumo[i] != 'Nenhuma' and consome_holdings[i] == 'sim'
                         else None
                     )
+                    if holding_consumo_val:
+                        if holding_consumo_val.isdigit():
+                            id_holding_consumo = int(holding_consumo_val)
+                        else:
+                            id_holding_consumo = nome_to_id.get(holding_consumo_val)
+                    else:
+                        id_holding_consumo = None
 
+                    # Montamos o dicionário com os dados do emissor
                     emissor = {
+                        # Nome do emissor e Cnpj
                         'cdCnpj': cnpjs[i].strip() if i < len(cnpjs) else '',
+                        'idEmissor': id_emissor,
                         'dsEmissor': nome.strip(),
+
+                        # Buscamos se o emissor é uma holding e se consome de alguma holding
                         'icHolding': int(is_holdings[i] == 'sim'),
                         'icConsomeHolding': int(consome_holdings[i] == 'sim'),
-                        'dsEmissorHoldingConsumo': holding_consumo,
+                        'idEmissorHoldingConsumo': id_holding_consumo,
+
+                        # Buscamos o setor e subsetor cadastrados
                         'dsSetor': setores_list[i].strip() if i < len(setores_list) and setores_list[i] else None,
                         'dsSubsetor': subsetores_list[i].strip() if i < len(subsetores_list) and subsetores_list[i] else None,
-                        'cdEmissoresOC3': request.form.getlist(f'emissores[{i}][oc3_codigos][]'),
-                        'cdEmissoresCRIMS': request.form.getlist(f'emissores[{i}][crims_codigos][]')
+                        
+                        # Montamos a lista de emissores OC3 e CRIMS
+                        'cdEmissoresOC3': request.form.getlist( 
+                            f'emissores[{i}][oc3_codigos][]' 
+                        ), 
+                        'cdEmissoresCRIMS': request.form.getlist( 
+                            f'emissores[{i}][crims_codigos][]' 
+                        ) 
                     }
+
                     emissores.append(emissor)
 
                 payload = {
+                    'idGrupo': id_grupo,
                     'dsGrupo': ds_grupo,
                     'emissores': emissores
                 }
@@ -228,11 +291,46 @@ def alterar_grupo_economico():
         grupo=getattr(current_user, 'grupo', ''),
         grupos_cadastrados=grupos_cadastrados,
         grupo_selecionado=grupo_selecionado,
+        id_grupo=id_grupo,
         dados_grupo=dados_grupo,
-        holdings_nomes=holdings_nomes,
+        holdings=holdings,
         setores=setores,
         subsetores=subsetores
     )
+
+@grupos_economicos_blueprint.route('/deletar', methods=['POST'])
+@grupos_economicos_blueprint.route('/deletar-grupo-economico', methods=['POST'])
+@login_required
+def deletar_grupo_economico():
+    try:
+        ds_grupo = (
+            request.form.get('dsGrupo')
+            or request.form.get('dsGrupoOriginal')
+            or request.form.get('nomeGrupo')
+            or ''
+        ).strip()
+        id_grupo = request.form.get('idGrupo')
+
+        if not ds_grupo and request.is_json:
+            data = request.get_json() or {}
+            ds_grupo = str(data.get('dsGrupo') or data.get('nomeGrupo') or '').strip()
+            id_grupo = data.get('idGrupo')
+
+        if not ds_grupo:
+            flash("Nome do grupo econômico não informado para exclusão.", "error")
+            return redirect(url_for('grupos_economicos.alterar_grupo_economico'))
+
+        payload = {'dsGrupo': ds_grupo}
+        if id_grupo and str(id_grupo).isdigit():
+            payload['idGrupo'] = int(id_grupo)
+
+        APIGruposEconomicosService.deletar_grupo_economico(payload)
+        flash(f"Grupo econômico '{ds_grupo}' deletado com sucesso!", "success")
+        return redirect(url_for('grupos_economicos.grupos_economicos'))
+
+    except Exception as e:
+        flash(f"Erro ao deletar grupo econômico: {str(e)}", "error")
+        return redirect(url_for('grupos_economicos.alterar_grupo_economico'))
 
 @grupos_economicos_blueprint.route('/criar', methods=['GET', 'POST'])
 @login_required
