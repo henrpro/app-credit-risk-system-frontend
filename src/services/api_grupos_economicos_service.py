@@ -74,8 +74,8 @@ class APIGruposEconomicosService:
             response = requests.post(f"{current_app.config['BACKEND_URL']}/v1/grupos-economicos/atualizar-grupo-economico", json=payload)
             response.raise_for_status()
             return response.json()
-        except Exception as e:
-            raise e
+        except requests.exceptions.HTTPError as e:
+            raise Exception(response.text) from e
 
     @classmethod
     def deletar_grupo_economico(self, payload: dict):

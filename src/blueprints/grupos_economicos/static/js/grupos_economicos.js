@@ -360,9 +360,14 @@ document.addEventListener('DOMContentLoaded', function () {
     setupModal(modalElOC3, 'oc3');
     setupModal(modalElCRIMS, 'crims');
 
-    function setupEmissorCardListeners(card) {
-        card.oc3Items = [];
-        card.crimsItems = [];
+    function setupEmissorCardListeners(card, resetItems = true) {
+        if (resetItems) {
+            card.oc3Items = [];
+            card.crimsItems = [];
+        } else {
+            card.oc3Items = card.oc3Items || [];
+            card.crimsItems = card.crimsItems || [];
+        }
 
         // Botão de remoção do emissor
         const btnRemove = card.querySelector('.remove-emissor-btn');
@@ -396,12 +401,57 @@ document.addEventListener('DOMContentLoaded', function () {
         // Ouvintes para atualizar dinamicamente a lista de holdings
         const nameInput = card.querySelector('.input-nome-emissor');
         const isHoldingSelect = card.querySelector('.select-is-holding');
+        const consomeHoldingSelect = card.querySelector('.select-consome-holding');
+        const holdingConsumoSelect = card.querySelector('.select-holding-consumo');
 
         if (nameInput) {
             nameInput.addEventListener('input', updateEmissoresState);
         }
         if (isHoldingSelect) {
             isHoldingSelect.addEventListener('change', updateEmissoresState);
+        }
+        if (consomeHoldingSelect && holdingConsumoSelect) {
+            consomeHoldingSelect.addEventListener('change', function () {
+                if (consomeHoldingSelect.value === 'sim') {
+                    holdingConsumoSelect.disabled = false;
+                } else {
+                    holdingConsumoSelect.value = 'Nenhuma';
+                    holdingConsumoSelect.disabled = true;
+                }
+            });
+        }
+    }
+
+    // Inicializa cards pré-renderizados no DOM (ex: tela de alteração)
+    if (container) {
+        const existingCards = container.querySelectorAll('.emissor-card');
+        existingCards.forEach(card => {
+            card.oc3Items = [];
+            card.crimsItems = [];
+
+            // Lê chips existentes de OC3
+            const oc3Inputs = card.querySelectorAll('input[name*="oc3_codigos"]');
+            oc3Inputs.forEach(input => {
+                if (input.value && !card.oc3Items.some(item => item.codigo === input.value)) {
+                    card.oc3Items.push({ codigo: input.value, nome: '', cnpj: '' });
+                }
+            });
+
+            // Lê chips existentes de CRIMS
+            const crimsInputs = card.querySelectorAll('input[name*="crims_codigos"]');
+            crimsInputs.forEach(input => {
+                if (input.value && !card.crimsItems.some(item => item.codigo === input.value)) {
+                    card.crimsItems.push({ codigo: input.value, nome: '', cnpj: '' });
+                }
+            });
+
+            setupEmissorCardListeners(card, false);
+            renderAssociatedBadges(card, 'oc3');
+            renderAssociatedBadges(card, 'crims');
+        });
+
+        if (existingCards.length > 0) {
+            updateEmissoresState();
         }
     }
 
@@ -410,7 +460,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const clone = template.content.cloneNode(true);
             const emissorCard = clone.querySelector('.emissor-card');
 
-            setupEmissorCardListeners(emissorCard);
+            setupEmissorCardListeners(emissorCard, true);
             container.appendChild(clone);
             updateEmissoresState();
 

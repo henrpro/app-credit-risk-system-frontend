@@ -4,6 +4,498 @@
 
 {% block content %}
 <div class="pagetitle mb-4">
-  <h1 class="pagetitle-main">Alterar Grupo Econômico Existente</h1>
+  <h1 class="pagetitle-main">Alterar Grupo Econômico</h1>
 </div>
+
+<!-- Card de Seleção e Busca do Grupo -->
+<div class="card p-4 mb-4">
+  <form id="formConsultarAlterarGrupo" method="POST" class="needs-validation">
+    <input type="hidden" name="action" value="pesquisar">
+    <div class="row align-items-end g-3">
+      <div class="col-md-8 col-lg-6">
+        <label for="selectGrupoEconomico" class="form-label">Grupo Econômico</label>
+        <select class="form-select" id="selectGrupoEconomico" name="dsGrupo" required>
+          <option value="" disabled {% if not grupo_selecionado %}selected{% endif %}>Selecione um grupo econômico...</option>
+          {% for item in grupos_cadastrados %}
+            {% set grupo_nome = item.dsGrupo if item.dsGrupo is defined else item %}
+            <option value="{{ grupo_nome }}" {% if grupo_selecionado == grupo_nome %}selected{% endif %}>{{ grupo_nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4 col-lg-3">
+        <button type="submit" id="btnPesquisarGrupo" class="btn-orange w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+          <i class="bi bi-search"></i> Pesquisar
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Formulário de Edição do Grupo Econômico (exibido após pesquisar) -->
+{% if dados_grupo is not none %}
+<div class="card p-4 mb-4" id="cardFormAlterar">
+  <form id="formCadastrarGrupo" method="POST" class="needs-validation" novalidate>
+    <input type="hidden" name="action" value="atualizar">
+    <input type="hidden" name="dsGrupoOriginal" value="{{ grupo_selecionado }}">
+
+    <!-- Linha do Nome do Grupo e Botão Adicionar Emissor -->
+    <div class="row align-items-end g-3">
+      <div class="col-md-8 col-lg-6">
+        <label for="nomeGrupo" class="form-label">Nome do Grupo <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="nomeGrupo" name="nomeGrupo" value="{{ grupo_selecionado }}" placeholder="Digite o nome do grupo econômico" required>
+        <div class="invalid-feedback">
+          Por favor, preencha o nome do grupo econômico.
+        </div>
+      </div>
+      <div class="col-md-4 col-lg-3">
+        <button type="button" id="btnAdicionarEmissor" class="btn-associar">
+          <i class="bi bi-plus-circle"></i> Adicionar Emissor
+        </button>
+      </div>
+    </div>
+
+    <!-- Mensagem de Alerta/Status -->
+    <div id="formAlert" class="alert d-none mt-3" role="alert"></div>
+
+    <!-- Container onde os blocos de emissores serão inseridos -->
+    <div id="emissoresContainer" class="mt-4">
+      {% for e in dados_grupo %}
+      <div class="emissor-card p-4 mb-4" style="position: relative;" data-emissor-index="{{ loop.index0 }}">
+        <input type="hidden" name="idEmissor[]" value="{{ e.idEmissor or '' }}">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="emissor-card-title mb-0">
+            <i class="bi bi-building me-2"></i><span class="emissor-title-text">Emissor #{{ loop.index }}</span>
+          </h5>
+          <button type="button" class="btn btn-outline-danger remove-emissor-btn" title="Remover Emissor">
+            <i class="bi bi-trash me-1"></i>Remover
+          </button>
+        </div>
+
+        <!-- Linha 1: CNPJ e Nome do Emissor -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">CNPJ</label>
+            <input type="text" class="form-control cnpj-mask" name="cnpjEmissor[]" value="{{ e.cdCnpj }}" placeholder="00.000.000/0000-00" maxlength="18">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Nome do Emissor <span class="text-danger">*</span></label>
+            <input type="text" class="form-control input-nome-emissor" name="nomeEmissor[]" value="{{ e.dsEmissor }}" placeholder="Digite o nome do emissor" required>
+            <div class="invalid-feedback">
+              Por favor, preencha o nome do emissor.
+            </div>
+          </div>
+        </div>
+
+        <!-- Linha 2: É holding?, Consome da Holding?, Holding de Consumo -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <label class="form-label">É holding? <span class="text-danger">*</span></label>
+            <select class="form-select select-is-holding" name="isHolding[]" required>
+              <option value="">Selecione...</option>
+              <option value="sim" {% if e.icHolding == 'sim' %}selected{% endif %}>Sim</option>
+              <option value="nao" {% if e.icHolding == 'nao' %}selected{% endif %}>Não</option>
+            </select>
+            <div class="invalid-feedback">Selecione uma opção.</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Consome da Holding? <span class="text-danger">*</span></label>
+            <select class="form-select select-consome-holding" name="consomeHolding[]" required>
+              <option value="">Selecione...</option>
+              <option value="sim" {% if e.icConsomeHolding == 'sim' %}selected{% endif %}>Sim</option>
+              <option value="nao" {% if e.icConsomeHolding == 'nao' %}selected{% endif %}>Não</option>
+            </select>
+            <div class="invalid-feedback">Selecione uma opção.</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Holding de Consumo</label>
+            <select class="form-select select-holding-consumo" name="holdingConsumo[]" {% if e.icConsomeHolding != 'sim' %}disabled{% endif %}>
+              <option value="Nenhuma">Nenhuma</option>
+              {% for h in holdings_nomes %}
+                {% if h != e.dsEmissor %}
+                  <option value="{{ h }}" {% if e.dsEmissorHoldingConsumo == h %}selected{% endif %}>{{ h }}</option>
+                {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- Linha 3: Setor e Subsetor -->
+        <div class="row g-3 mb-4">
+          <div class="col-md-6">
+            <label class="form-label">Setor <span class="text-danger">*</span></label>
+            <select class="form-select select-setor" name="setorEmissor[]" required>
+              <option value="">Selecione o setor...</option>
+              {% for s in setores %}
+                {% set s_val = s.dsSetor if s is mapping and s.dsSetor is defined else (s.nome if s is mapping and s.nome is defined else s) %}
+                <option value="{{ s_val }}" {% if e.dsSetor == s_val %}selected{% endif %}>{{ s_val }}</option>
+              {% endfor %}
+            </select>
+            <div class="invalid-feedback">Selecione o setor.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Subsetor</label>
+            <select class="form-select select-subsetor" name="subsetorEmissor[]">
+              <option value="">Selecione o subsetor...</option>
+              {% for sub in subsetores %}
+                {% set sub_val = sub.dsSubsetor if sub is mapping and sub.dsSubsetor is defined else (sub.nome if sub is mapping and sub.nome is defined else sub) %}
+                <option value="{{ sub_val }}" {% if e.dsSubsetor == sub_val %}selected{% endif %}>{{ sub_val }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- Linha 4: Dois botões centralizados -->
+        <div class="row mb-3">
+          <div class="col-12 d-flex justify-content-center gap-3 flex-wrap">
+            <button type="button" class="btn-associar btn-associar-oc3">
+              <i class="bi bi-link-45deg"></i> Associar Emissor OC3
+            </button>
+            <button type="button" class="btn-associar btn-associar-crims">
+              <i class="bi bi-link-45deg"></i> Associar Emissor CRIMS
+            </button>
+          </div>
+        </div>
+
+        <!-- Seção de Itens Associados (OC3 e CRIMS) -->
+        <div class="row associados-section">
+          <div class="col-md-6 mb-2">
+            <div class="associados-wrapper oc3-associados-wrapper p-3 rounded {% if not e.cdEmissoresOC3 %}d-none{% endif %}">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong class="small text-uppercase"><i class="bi bi-link-45deg text-warning me-1"></i>OC3 Associados</strong>
+                <span class="badge bg-secondary oc3-badge-count">{{ e.cdEmissoresOC3 | length }}</span>
+              </div>
+              <div class="d-flex flex-wrap gap-2 oc3-badges-list">
+                {% for oc in e.cdEmissoresOC3 %}
+                  <span class="associado-chip" data-code="{{ oc }}">
+                    <span><strong>{{ oc }}</strong></span>
+                    <button type="button" class="chip-remove-btn" title="Remover"><i class="bi bi-x"></i></button>
+                  </span>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6 mb-2">
+            <div class="associados-wrapper crims-associados-wrapper p-3 rounded {% if not e.cdEmissoresCRIMS %}d-none{% endif %}">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <strong class="small text-uppercase"><i class="bi bi-link-45deg text-info me-1"></i>CRIMS Associados</strong>
+                <span class="badge bg-secondary crims-badge-count">{{ e.cdEmissoresCRIMS | length }}</span>
+              </div>
+              <div class="d-flex flex-wrap gap-2 crims-badges-list">
+                {% for cr in e.cdEmissoresCRIMS %}
+                  <span class="associado-chip" data-code="{{ cr }}">
+                    <span><strong>{{ cr }}</strong></span>
+                    <button type="button" class="chip-remove-btn" title="Remover"><i class="bi bi-x"></i></button>
+                  </span>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Container para inputs ocultos dos códigos selecionados -->
+        <div class="hidden-associados-inputs">
+          {% for oc in e.cdEmissoresOC3 %}
+            <input type="hidden" name="emissores[{{ loop.index0 }}][oc3_codigos][]" value="{{ oc }}">
+          {% endfor %}
+          {% for cr in e.cdEmissoresCRIMS %}
+            <input type="hidden" name="emissores[{{ loop.index0 }}][crims_codigos][]" value="{{ cr }}">
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Botão de Salvar Alterações -->
+    <div id="formActionsContainer" class="row mt-4 {% if not dados_grupo %}d-none{% endif %}">
+      <div class="col-12 text-center">
+        <button type="submit" id="btnSalvarGrupo" class="btn-orange px-5 py-2">
+          <i class="bi bi-check2-circle me-2"></i>Salvar Alterações
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<!-- Template HTML para bloco dinâmico de Emissor -->
+<template id="emissorTemplate">
+  <div class="emissor-card p-4 mb-4" style="position: relative;">
+    <input type="hidden" name="idEmissor[]" value="">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="emissor-card-title mb-0">
+        <i class="bi bi-building me-2"></i><span class="emissor-title-text">Emissor</span>
+      </h5>
+      <button type="button" class="btn btn-outline-danger remove-emissor-btn" title="Remover Emissor">
+        <i class="bi bi-trash me-1"></i>Remover
+      </button>
+    </div>
+
+    <!-- Linha 1: CNPJ e Nome do Emissor -->
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <label class="form-label">CNPJ</label>
+        <input type="text" class="form-control cnpj-mask" name="cnpjEmissor[]" placeholder="00.000.000/0000-00" maxlength="18">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Nome do Emissor <span class="text-danger">*</span></label>
+        <input type="text" class="form-control input-nome-emissor" name="nomeEmissor[]" placeholder="Digite o nome do emissor" required>
+        <div class="invalid-feedback">
+          Por favor, preencha o nome do emissor.
+        </div>
+      </div>
+    </div>
+
+    <!-- Linha 2: É holding?, Consome da Holding?, Holding de Consumo -->
+    <div class="row g-3 mb-3">
+      <div class="col-md-4">
+        <label class="form-label">É holding? <span class="text-danger">*</span></label>
+        <select class="form-select select-is-holding" name="isHolding[]" required>
+          <option value="">Selecione...</option>
+          <option value="sim">Sim</option>
+          <option value="nao">Não</option>
+        </select>
+        <div class="invalid-feedback">Selecione uma opção.</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Consome da Holding? <span class="text-danger">*</span></label>
+        <select class="form-select select-consome-holding" name="consomeHolding[]" required>
+          <option value="">Selecione...</option>
+          <option value="sim">Sim</option>
+          <option value="nao">Não</option>
+        </select>
+        <div class="invalid-feedback">Selecione uma opção.</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Holding de Consumo</label>
+        <select class="form-select select-holding-consumo" name="holdingConsumo[]">
+          <option value="">Nenhuma</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Linha 3: Setor e Subsetor -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-6">
+        <label class="form-label">Setor <span class="text-danger">*</span></label>
+        <select class="form-select select-setor" name="setorEmissor[]" required>
+          <option value="">Selecione o setor...</option>
+          {% for s in setores %}
+            {% if s is mapping %}
+              <option value="{{ s.id or s.cdSetor or s.cd_setor or s.dsSetor or s.nome or s }}">{{ s.dsSetor or s.ds_setor or s.nome or s.descricao or s }}</option>
+            {% else %}
+              <option value="{{ s }}">{{ s }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        <div class="invalid-feedback">Selecione o setor.</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Subsetor</label>
+        <select class="form-select select-subsetor" name="subsetorEmissor[]">
+          <option value="">Selecione o subsetor...</option>
+          {% for sub in subsetores %}
+            {% if sub is mapping %}
+              <option value="{{ sub.id or sub.cdSubsetor or sub.cd_subsetor or sub.dsSubsetor or sub.nome or sub }}">{{ sub.dsSubsetor or sub.ds_subsetor or sub.nome or sub.descricao or sub }}</option>
+            {% else %}
+              <option value="{{ sub }}">{{ sub }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Linha 4: Dois botões centralizados -->
+    <div class="row mb-3">
+      <div class="col-12 d-flex justify-content-center gap-3 flex-wrap">
+        <button type="button" class="btn-associar btn-associar-oc3">
+          <i class="bi bi-link-45deg"></i> Associar Emissor OC3
+        </button>
+        <button type="button" class="btn-associar btn-associar-crims">
+          <i class="bi bi-link-45deg"></i> Associar Emissor CRIMS
+        </button>
+      </div>
+    </div>
+
+    <!-- Seção de Itens Associados (OC3 e CRIMS) -->
+    <div class="row associados-section">
+      <div class="col-md-6 mb-2">
+        <div class="associados-wrapper oc3-associados-wrapper p-3 rounded d-none">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="small text-uppercase"><i class="bi bi-link-45deg text-warning me-1"></i>OC3 Associados</strong>
+            <span class="badge bg-secondary oc3-badge-count">0</span>
+          </div>
+          <div class="d-flex flex-wrap gap-2 oc3-badges-list"></div>
+        </div>
+      </div>
+      <div class="col-md-6 mb-2">
+        <div class="associados-wrapper crims-associados-wrapper p-3 rounded d-none">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <strong class="small text-uppercase"><i class="bi bi-link-45deg text-info me-1"></i>CRIMS Associados</strong>
+            <span class="badge bg-secondary crims-badge-count">0</span>
+          </div>
+          <div class="d-flex flex-wrap gap-2 crims-badges-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Container para inputs ocultos dos códigos selecionados -->
+    <div class="hidden-associados-inputs"></div>
+  </div>
+</template>
+
+<!-- Modal Associar OC3 -->
+<div class="modal fade" id="modalAssociarOC3" data-url="{{ url_for('grupos_economicos.api_obtem_emissores_oc3') }}" tabindex="-1" aria-labelledby="modalAssociarOC3Label" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fs-5" id="modalAssociarOC3Label">
+          <i class="bi bi-link-45deg text-warning me-2"></i>Associar Emissor OC3
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="search-modal-box mb-4">
+          <label for="inputBuscaOC3" class="form-label">Consultar emissor</label>
+          <div class="d-flex gap-2 align-items-center">
+            <input type="text" class="form-control input-busca-modal" id="inputBuscaOC3" placeholder="Digite o código, nome ou CNPJ do emissor...">
+            <button type="button" class="btn btn-orange d-flex align-items-center gap-2 text-nowrap px-4 py-2" id="btnPesquisarOC3">
+              <i class="bi bi-search"></i> Pesquisar
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-results-area">
+          <div class="text-center py-4 initial-state text-muted">
+            <i class="bi bi-search fs-2 d-block mb-2 text-warning"></i>
+            Digite o nome, código ou CNPJ do emissor e clique em Pesquisar.
+          </div>
+          <div class="text-center py-4 d-none loading-state">
+            <div class="spinner-border text-warning" role="status">
+              <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-2 text-muted">Consultando emissores OC3...</p>
+          </div>
+          <div class="d-none content-state">
+            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+              <span class="text-muted small results-count">0 resultados encontrados</span>
+              <div class="form-check mb-0">
+                <input class="form-check-input select-all-checkbox" type="checkbox" id="selectAllOC3">
+                <label class="form-check-label small" for="selectAllOC3">Selecionar Todos</label>
+              </div>
+            </div>
+            <div class="table-responsive results-table-wrapper border rounded">
+              <table class="table table-hover align-middle mb-0 custom-modal-table">
+                <thead>
+                  <tr>
+                    <th style="width: 45px;" class="text-center">#</th>
+                    <th>CNPJ</th>
+                    <th>Código</th>
+                    <th>Nome</th>
+                  </tr>
+                </thead>
+                <tbody class="results-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="text-center py-4 d-none empty-state text-muted">
+            <i class="bi bi-exclamation-circle fs-2 d-block mb-2 text-warning"></i>
+            Nenhum emissor OC3 encontrado para a pesquisa informada.
+          </div>
+          <div class="alert alert-danger d-none error-state my-2" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i><span class="error-msg"></span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-orange px-4" id="btnConfirmarOC3">
+          <i class="bi bi-check-lg me-1"></i>Confirmar Associação
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Associar CRIMS -->
+<div class="modal fade" id="modalAssociarCRIMS" data-url="{{ url_for('grupos_economicos.api_obtem_emissores_crims') }}" tabindex="-1" aria-labelledby="modalAssociarCRIMSLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fs-5" id="modalAssociarCRIMSLabel">
+          <i class="bi bi-link-45deg text-info me-2"></i>Associar Emissor CRIMS
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="search-modal-box mb-4">
+          <label for="inputBuscaCRIMS" class="form-label">Consultar emissor</label>
+          <div class="d-flex gap-2 align-items-center">
+            <input type="text" class="form-control input-busca-modal" id="inputBuscaCRIMS" placeholder="Digite o código, nome ou CNPJ do emissor...">
+            <button type="button" class="btn btn-orange d-flex align-items-center gap-2 text-nowrap px-4 py-2" id="btnPesquisarCRIMS">
+              <i class="bi bi-search"></i> Pesquisar
+            </button>
+          </div>
+        </div>
+
+        <div class="modal-results-area">
+          <div class="text-center py-4 initial-state text-muted">
+            <i class="bi bi-search fs-2 d-block mb-2 text-info"></i>
+            Digite o nome, código ou CNPJ do emissor e clique em Pesquisar.
+          </div>
+          <div class="text-center py-4 d-none loading-state">
+            <div class="spinner-border text-info" role="status">
+              <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-2 text-muted">Consultando emissores CRIMS...</p>
+          </div>
+          <div class="d-none content-state">
+            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+              <span class="text-muted small results-count">0 resultados encontrados</span>
+              <div class="form-check mb-0">
+                <input class="form-check-input select-all-checkbox" type="checkbox" id="selectAllCRIMS">
+                <label class="form-check-label small" for="selectAllCRIMS">Selecionar Todos</label>
+              </div>
+            </div>
+            <div class="table-responsive results-table-wrapper border rounded">
+              <table class="table table-hover align-middle mb-0 custom-modal-table">
+                <thead>
+                  <tr>
+                    <th style="width: 45px;" class="text-center">#</th>
+                    <th>CNPJ</th>
+                    <th>Código</th>
+                    <th>Nome</th>
+                  </tr>
+                </thead>
+                <tbody class="results-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="text-center py-4 d-none empty-state text-muted">
+            <i class="bi bi-exclamation-circle fs-2 d-block mb-2 text-info"></i>
+            Nenhum emissor CRIMS encontrado para a pesquisa informada.
+          </div>
+          <div class="alert alert-danger d-none error-state my-2" role="alert">
+            <i class="bi bi-exclamation-triangle me-2"></i><span class="error-msg"></span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-orange px-4" id="btnConfirmarCRIMS">
+          <i class="bi bi-check-lg me-1"></i>Confirmar Associação
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('grupos_economicos.static', filename='css/grupos_economicos.css') }}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('grupos_economicos.static', filename='js/grupos_economicos.js') }}"></script>
 {% endblock %}
