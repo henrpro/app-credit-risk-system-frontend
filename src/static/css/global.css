@@ -167,14 +167,35 @@ label {
 # Main
 --------------------------------------------------------------*/
 #main {
-  padding: 90px 10px;
+  padding: 95px 24px 40px 24px;
   transition: all 0.3s;
+  min-height: 100vh;
 }
 
 @media (max-width: 1199px) {
   #main {
-      padding: 20px;
+    padding: 90px 16px 30px 16px;
   }
+}
+
+.flash-messages-container {
+  margin-bottom: 16px;
+  transition: all 0.2s ease-in-out;
+}
+
+.flash-messages-container:empty,
+.flash-messages-container:not(:has(.alert)) {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.flash-messages-container .alert {
+  margin-bottom: 0;
+}
+
+.flash-messages-container .alert + .alert {
+  margin-top: 8px;
 }
 
 /*--------------------------------------------------------------
@@ -364,7 +385,7 @@ label {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 18px 36px;
+  padding: 12px 28px;
   box-shadow: var(--shadow-header);
   border-bottom: 1px solid var(--color-border);
   transition: all 0.3s ease;
@@ -536,13 +557,13 @@ label {
 
 .sidebar {
   position: fixed;
-  top: 84px;
+  top: 77px;
   left: 0;
   bottom: 0;
   width: 260px;
   z-index: 996;
   transition: all 0.3s ease;
-  padding: 24px 20px;
+  padding: 20px 20px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
@@ -868,19 +889,6 @@ label {
   box-shadow: 0 0 0 3px rgba(236, 112, 0, 0.2) !important;
 }
 
-/*--------------------------------------------------------------
-# Task Monitor Additions
---------------------------------------------------------------*/
-.task-card-monitor {
-  transition: all 0.3s ease;
-  border: 1px solid transparent !important;
-}
-
-.task-card-monitor:hover {
-  border-color: var(--color-accent) !important;
-  box-shadow: 0 8px 25px rgba(236, 112, 0, 0.15);
-  transform: translateY(-4px);
-}
 
 /*--------------------------------------------------------------
 # ApexCharts Tooltip Fix

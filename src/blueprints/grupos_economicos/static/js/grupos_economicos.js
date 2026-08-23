@@ -189,18 +189,36 @@ document.addEventListener('DOMContentLoaded', function () {
         let currentResults = [];
 
         function setViewState(state) {
-            initialEl.classList.toggle('d-none', state !== 'initial');
-            loadingEl.classList.toggle('d-none', state !== 'loading');
-            contentEl.classList.toggle('d-none', state !== 'content');
-            emptyEl.classList.toggle('d-none', state !== 'empty');
-            errorEl.classList.toggle('d-none', state !== 'error');
+            if (initialEl) initialEl.classList.toggle('d-none', state !== 'initial');
+            if (loadingEl) loadingEl.classList.toggle('d-none', state !== 'loading');
+            if (contentEl) contentEl.classList.toggle('d-none', state !== 'content');
+            if (emptyEl) emptyEl.classList.toggle('d-none', state !== 'empty');
+            if (errorEl) errorEl.classList.toggle('d-none', state !== 'error');
         }
 
+        function resetModal() {
+            if (inputBusca) inputBusca.value = '';
+            currentResults = [];
+            if (tbody) tbody.innerHTML = '';
+            if (countSpan) countSpan.textContent = '0 resultados encontrados';
+            if (selectAllCb) {
+                selectAllCb.checked = false;
+                selectAllCb.indeterminate = false;
+            }
+            if (errorMsg) errorMsg.textContent = '';
+            setViewState('initial');
+        }
+
+        // Desconecta e limpa o modal ao abrir para não guardar buscas e resultados anteriores
+        modalEl.addEventListener('show.bs.modal', function () {
+            resetModal();
+        });
+
         async function doSearch() {
-            const query = inputBusca.value.trim();
+            const query = inputBusca ? inputBusca.value.trim() : '';
             setViewState('loading');
 
-            const baseUrl = modalEl.dataset.url || (isOC3 ? '/grupos_economicos/api/emissores-oc3' : '/grupos_economicos/api/emissores-crims');
+            const baseUrl = modalEl.dataset.url || (isOC3 ? '/grupos-economicos/api/emissores-oc3' : '/grupos-economicos/api/emissores-crims');
             const separator = baseUrl.includes('?') ? '&' : '?';
             const endpoint = `${baseUrl}${separator}dsEmissor=${encodeURIComponent(query)}`;
 
@@ -230,8 +248,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         function renderTableRows() {
+            if (!tbody) return;
             tbody.innerHTML = '';
-            if (selectAllCb) selectAllCb.checked = false;
+            if (selectAllCb) {
+                selectAllCb.checked = false;
+                selectAllCb.indeterminate = false;
+            }
 
             const existingItems = currentTargetCard 
                 ? (isOC3 ? (currentTargetCard.oc3Items || []) : (currentTargetCard.crimsItems || []))
@@ -272,6 +294,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         function updateSelectAllState() {
+            if (!tbody) return;
             const allCheckboxes = tbody.querySelectorAll('.item-checkbox');
             if (!selectAllCb || allCheckboxes.length === 0) return;
 
@@ -282,6 +305,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (selectAllCb) {
             selectAllCb.addEventListener('change', function () {
+                if (!tbody) return;
                 const checkboxes = tbody.querySelectorAll('.item-checkbox');
                 checkboxes.forEach(cb => cb.checked = selectAllCb.checked);
             });
@@ -304,6 +328,7 @@ document.addEventListener('DOMContentLoaded', function () {
             btnConfirmar.addEventListener('click', function () {
                 if (!currentTargetCard) return;
 
+                if (!tbody) return;
                 const checkedBoxes = tbody.querySelectorAll('.item-checkbox:checked');
                 const selectedItems = [];
 
@@ -315,7 +340,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
 
                 if (isOC3) {
-                    // Mescla mantendo os selecionados
                     currentTargetCard.oc3Items = selectedItems;
                     renderAssociatedBadges(currentTargetCard, 'oc3');
                     if (bsModalOC3) bsModalOC3.hide();
@@ -327,7 +351,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // Ao abrir o modal, reseta ou foca
+        // Ao abrir o modal, foca no campo de busca
         modalEl.addEventListener('shown.bs.modal', function () {
             if (inputBusca) inputBusca.focus();
         });
@@ -416,14 +440,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (formCadastrarGrupo) {
-        formCadastrarGrupo.addEventListener('submit', async function (e) {
-            e.preventDefault();
+        formCadastrarGrupo.addEventListener('submit', function (e) {
             hideFormAlert();
 
             const nomeGrupoInput = document.getElementById('nomeGrupo');
             const dsGrupo = nomeGrupoInput ? nomeGrupoInput.value.trim() : '';
 
             if (!dsGrupo) {
+                e.preventDefault();
                 formCadastrarGrupo.classList.add('was-validated');
                 if (nomeGrupoInput) nomeGrupoInput.focus();
                 showFormAlert('Por favor, informe o nome do grupo econômico.', 'warning');
@@ -432,22 +456,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const emissorCards = container ? container.querySelectorAll('.emissor-card') : [];
             if (emissorCards.length === 0) {
+                e.preventDefault();
                 showFormAlert('Adicione ao menos um emissor ao grupo econômico antes de salvar.', 'warning');
                 return;
             }
 
             // Validação dos campos de cada emissor
             let hasError = false;
-            const emissores = [];
 
-            emissorCards.forEach((card) => {
-                const cdCnpj = card.querySelector('.cnpj-mask')?.value?.trim() || '';
+            emissorCards.forEach((card, idx) => {
                 const dsEmissor = card.querySelector('.input-nome-emissor')?.value?.trim() || '';
                 const isHoldingVal = card.querySelector('.select-is-holding')?.value;
                 const consomeHoldingVal = card.querySelector('.select-consome-holding')?.value;
-                const holdingConsumoVal = card.querySelector('.select-holding-consumo')?.value || null;
-                const dsSetor = card.querySelector('.select-setor')?.value || null;
-                const dsSubsetor = card.querySelector('.select-subsetor')?.value || null;
+                const dsSetor = card.querySelector('.select-setor')?.value || '';
 
                 if (!dsEmissor || !isHoldingVal || !consomeHoldingVal || !dsSetor) {
                     hasError = true;
@@ -456,68 +477,23 @@ document.addEventListener('DOMContentLoaded', function () {
                     card.classList.remove('border-danger');
                 }
 
-                const cdEmissoresOC3 = (card.oc3Items || []).map(i => String(i.codigo)).filter(Boolean);
-                const cdEmissoresCRIMS = (card.crimsItems || []).map(i => String(i.codigo)).filter(Boolean);
-
-                emissores.push({
-                    cdCnpj: cdCnpj,
-                    dsEmissor: dsEmissor,
-                    icHolding: isHoldingVal === 'sim' ? 1 : 0,
-                    icConsomeHolding: consomeHoldingVal === 'sim' ? 1 : 0,
-                    dsEmissorHoldingConsumo: (consomeHoldingVal === 'sim' && holdingConsumoVal && holdingConsumoVal !== 'Nenhuma') ? holdingConsumoVal : null,
-                    dsSetor: dsSetor,
-                    dsSubsetor: dsSubsetor,
-                    cdEmissoresOC3: cdEmissoresOC3,
-                    cdEmissoresCRIMS: cdEmissoresCRIMS
-                });
+                // Sincroniza os hidden inputs com o índice correto antes da submissão
+                updateHiddenInputs(card, idx);
             });
 
             if (hasError || !formCadastrarGrupo.checkValidity()) {
+                e.preventDefault();
                 formCadastrarGrupo.classList.add('was-validated');
                 showFormAlert('Por favor, preencha todos os campos obrigatórios (*) dos emissores adicionados.', 'warning');
                 return;
             }
 
-            const payload = {
-                dsGrupo: dsGrupo,
-                emissores: emissores
-            };
-
-            // Loading state no botão
-            const originalBtnHtml = btnSalvarGrupo ? btnSalvarGrupo.innerHTML : '';
+            // O formulário prossegue com a submissão padrão POST para a rota Flask
             if (btnSalvarGrupo) {
-                btnSalvarGrupo.disabled = true;
-                btnSalvarGrupo.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Cadastrando grupo econômico...';
-            }
-
-            try {
-                const response = await fetch(window.location.href, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-
-                if (!response.ok || !result.success) {
-                    throw new Error(result.error || 'Erro ao registrar o grupo econômico.');
-                }
-
-                showFormAlert(result.message || 'Grupo econômico registrado com sucesso!', 'success');
-
                 setTimeout(() => {
-                    window.location.href = result.redirect_url || '/grupos-economicos/';
-                }, 1200);
-
-            } catch (err) {
-                showFormAlert(err.message || 'Falha na comunicação com o servidor ao tentar salvar.', 'danger');
-                if (btnSalvarGrupo) {
-                    btnSalvarGrupo.disabled = false;
-                    btnSalvarGrupo.innerHTML = originalBtnHtml;
-                }
+                    btnSalvarGrupo.disabled = true;
+                    btnSalvarGrupo.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Cadastrando grupo econômico...';
+                }, 0);
             }
         });
     }

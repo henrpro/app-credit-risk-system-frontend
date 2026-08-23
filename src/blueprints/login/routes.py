@@ -3,7 +3,7 @@ from blueprints.login.auth import User
 
 # Importações de bibliotecas
 from flask_login import LoginManager, login_user, login_required, logout_user
-from flask import Blueprint, render_template, redirect, url_for, request
+from flask import Blueprint, render_template, redirect, url_for, request, flash
 from typing import Any
 
 # Cria a blueprint
@@ -12,6 +12,7 @@ login_blueprint = Blueprint('login_blueprint', __name__, template_folder='templa
 # Configura o LoginManager
 login_manager = LoginManager()
 login_manager.login_view = 'login_blueprint.login_user_route'
+login_manager.login_message = None
 
 # Função de carregamento de usuário
 @login_manager.user_loader
@@ -32,6 +33,7 @@ def login_user_route() -> Any:
             login_user(user)
             return redirect(url_for('home_page'))
         else:
+            flash('Usuário ou senha inválidos.', 'danger')
             return redirect(url_for('login_blueprint.login_user_route'))
     return render_template('login.html')
 

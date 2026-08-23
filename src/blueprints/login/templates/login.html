@@ -35,6 +35,18 @@
             <div class="card mb-3 custom-card w-100 border-0 shadow-lg login-card">
               <div class="card-body p-4 p-md-5">
 
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show mb-4 shadow-sm" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                      </div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
                 <form class="row g-3 needs-validation" method="POST" action="{{ url_for('login_blueprint.login_user_route') }}" novalidate>
                   <div class="col-12 mt-2">
                     <label for="yourUsername" class="form-label form-label-custom">Username</label>

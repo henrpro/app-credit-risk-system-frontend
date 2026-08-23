@@ -83,4 +83,15 @@ if (localStorage.getItem('privacy') === 'true') {
     });
   }
 
+  // Remove flash messages container when alert is closed
+  document.addEventListener('closed.bs.alert', function (event) {
+    const container = event.target.closest('.flash-messages-container') || document.querySelector('.flash-messages-container');
+    if (container) {
+      const remainingAlerts = container.querySelectorAll('.alert');
+      if (remainingAlerts.length === 0) {
+        container.remove();
+      }
+    }
+  });
+
 })();
