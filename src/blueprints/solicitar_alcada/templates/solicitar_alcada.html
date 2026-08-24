@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}CRS - Solicitar Alçada{% endblock %}
+
+{% block content %}
+<div class="pagetitle mb-4">
+  <h1 class="pagetitle-main">Solicitar Alçada</h1>
+</div>
+
+<!-- Card de Seleção e Busca do Grupo e Evento -->
+<div class="card p-4 mb-4">
+  <form id="formSolicitarAlcada" method="POST" class="needs-validation">
+    <div class="row align-items-end g-3">
+      <div class="col-md-4 col-lg-4">
+        <label for="selectGrupoEconomico" class="form-label">Grupo Econômico</label>
+        <select class="form-select" id="selectGrupoEconomico" name="dsGrupo" required>
+          <option value="" disabled {% if not ds_grupo_selecionado %}selected{% endif %}>Selecione um grupo econômico...</option>
+          {% for item in grupos_cadastrados %}
+            {% set grupo_nome = item.dsGrupo if item.dsGrupo is defined else item %}
+            <option value="{{ grupo_nome }}" {% if ds_grupo_selecionado == grupo_nome %}selected{% endif %}>{{ grupo_nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-5 col-lg-6">
+        <label for="selectTipoEvento" class="form-label">Evento</label>
+        <select class="form-select" id="selectTipoEvento" name="idTipoEvento" required>
+          <option value="" disabled {% if not id_tipo_evento_selecionado %}selected{% endif %}>Selecione um evento...</option>
+          {% for ev in eventos_cadastrados %}
+            {% set ev_id = ev.idTipoEvento if ev.idTipoEvento is defined else (ev.idEvento if ev.idEvento is defined else (ev.id if ev.id is defined else ev)) %}
+            {% set ev_nome = ev.dsTipoEvento if ev.dsTipoEvento is defined else (ev.dsEvento if ev.dsEvento is defined else (ev.nome if ev.nome is defined else ev)) %}
+            <option value="{{ ev_id }}" {% if id_tipo_evento_selecionado and id_tipo_evento_selecionado|string == ev_id|string %}selected{% endif %}>{{ ev_nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3 col-lg-2">
+        <button type="submit" id="btnIniciarSolicitacao" class="btn-orange w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+          <i class="bi bi-play-circle"></i> Iniciar
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

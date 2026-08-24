@@ -30,6 +30,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    function updateHoldingConsumoState(card) {
+        if (!card) return;
+        const consomeSelect = card.querySelector('.select-consome-holding');
+        const consumoSelect = card.querySelector('.select-holding-consumo');
+        if (consomeSelect && consumoSelect) {
+            if (consomeSelect.value === 'sim') {
+                consumoSelect.disabled = false;
+            } else {
+                consumoSelect.disabled = true;
+                consumoSelect.value = '';
+            }
+        }
+    }
+
     function updateEmissoresState() {
         const allBlocks = document.querySelectorAll('.emissor-card');
         const holdings = [];
@@ -91,6 +105,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                     consumoSelect.appendChild(option);
                 });
+
+                // Mantém estado de habilitação e valor consistente com "Consome da Holding?"
+                updateHoldingConsumoState(block);
             }
         });
     }
@@ -419,24 +436,19 @@ document.addEventListener('DOMContentLoaded', function () {
         const holdingConsumoSelect = card.querySelector('.select-holding-consumo');
 
         if (nameInput) {
-            nameInput.addEventListener('input', updateEmissoresState);
+            nameInput.addEventListener('input', function () {
+                nameInput.classList.remove('is-invalid');
+                updateEmissoresState();
+            });
         }
         if (isHoldingSelect) {
             isHoldingSelect.addEventListener('change', updateEmissoresState);
         }
         if (consomeHoldingSelect && holdingConsumoSelect) {
-            consomeHoldingSelect.addEventListener('change', function () {
-                if (consomeHoldingSelect.value === 'nao') {
-                    holdingConsumoSelect.value = '';
-                }
-            });
+            updateHoldingConsumoState(card);
 
-            holdingConsumoSelect.addEventListener('change', function () {
-                if (holdingConsumoSelect.value !== '') {
-                    consomeHoldingSelect.value = 'sim';
-                } else {
-                    consomeHoldingSelect.value = 'nao';
-                }
+            consomeHoldingSelect.addEventListener('change', function () {
+                updateHoldingConsumoState(card);
             });
         }
     }
@@ -530,20 +542,37 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Validação dos campos de cada emissor
+            // Validação dos campos de cada emissor e unicidade de nomes
             let hasError = false;
+            const namesMap = {};
+            const duplicateNames = new Set();
 
             emissorCards.forEach((card, idx) => {
-                const dsEmissor = card.querySelector('.input-nome-emissor')?.value?.trim() || '';
+                const inputNome = card.querySelector('.input-nome-emissor');
+                const dsEmissor = inputNome?.value?.trim() || '';
                 const isHoldingVal = card.querySelector('.select-is-holding')?.value;
                 const consomeHoldingVal = card.querySelector('.select-consome-holding')?.value;
                 const dsSetor = card.querySelector('.select-setor')?.value || '';
+
+                if (inputNome) {
+                    inputNome.classList.remove('is-invalid');
+                }
 
                 if (!dsEmissor || !isHoldingVal || !consomeHoldingVal || !dsSetor) {
                     hasError = true;
                     card.classList.add('border-danger');
                 } else {
                     card.classList.remove('border-danger');
+                }
+
+                if (dsEmissor) {
+                    const normalized = dsEmissor.toLowerCase();
+                    if (namesMap[normalized]) {
+                        duplicateNames.add(dsEmissor);
+                        namesMap[normalized].push({ card, input: inputNome });
+                    } else {
+                        namesMap[normalized] = [{ card, input: inputNome }];
+                    }
                 }
 
                 // Sincroniza os hidden inputs com o índice correto antes da submissão
@@ -556,6 +585,29 @@ document.addEventListener('DOMContentLoaded', function () {
                 showFormAlert('Por favor, preencha todos os campos obrigatórios (*) dos emissores adicionados.', 'warning');
                 return;
             }
+
+            // Validação de nomes duplicados dentro do mesmo grupo
+            if (duplicateNames.size > 0) {
+                e.preventDefault();
+                duplicateNames.forEach(dupName => {
+                    const normalized = dupName.toLowerCase();
+                    if (namesMap[normalized]) {
+                        namesMap[normalized].forEach(item => {
+                            if (item.input) item.input.classList.add('is-invalid');
+                            if (item.card) item.card.classList.add('border-danger');
+                        });
+                    }
+                });
+                const listaDuplicados = Array.from(duplicateNames).join(', ');
+                showFormAlert(`Não é permitido cadastrar mais de um emissor com o mesmo nome dentro do mesmo grupo: <strong>${listaDuplicados}</strong>.`, 'warning');
+                return;
+            }
+
+            // Habilita temporariamente os selects de holding de consumo para manter o envio alinhado por índice no POST
+            const allConsumoSelects = formCadastrarGrupo.querySelectorAll('.select-holding-consumo');
+            allConsumoSelects.forEach(sel => {
+                sel.disabled = false;
+            });
 
             // O formulário prossegue com a submissão padrão POST para a rota Flask
             if (btnSalvarGrupo) {

@@ -60,7 +60,7 @@ def criar_grupo_economico():
                     # Buscamos se o emissor é uma holding e se consome de alguma holding
                     'icHolding': int(is_holdings[i] == 'sim'), 
                     'icConsomeHolding': int(consome_holdings[i] == 'sim'),
-                    'dsEmissorHoldingConsumo': holding_consumo,
+                    'dsEmissorHoldingConsumo': holding_consumo if (i < len(consome_holdings) and consome_holdings[i] == 'sim') else None,
 
                     # Buscamos o setor e subsetor cadastrados
                     'dsSetor': setores_list[i].strip() if i < len(setores_list) and setores_list[i] else None, 
@@ -335,51 +335,50 @@ def alterar_grupo_economico():
 
                 # Iteramos pelos emissores para montar o payload
                 emissores = []
+
+                # Vamos iterar pelos emissores e colocar os dados dentro de uma lista
                 for i, nome in enumerate(nomes):
                     # Buscamos o id do emissor
                     id_emissor = (
-                        int(ids_emissores[i].strip()) 
-                        if i < len(ids_emissores) and ids_emissores[i] and ids_emissores[i].strip().isdigit()
-                        else None
-                        )
-
-                    # Começamos buscando a holding de consumo do emissor diretamente pelo ID
-                    holding_consumo_val = (
-                        holdings_consumo[i].strip()
-                        if i < len(holdings_consumo) and holdings_consumo[i] and holdings_consumo[i] != 'Nenhuma' and consome_holdings[i] == 'sim'
+                        int(ids_emissores[i].strip())
+                        if i < len(ids_emissores)
+                        and ids_emissores[i]
+                        and ids_emissores[i].strip().isdigit()
                         else None
                     )
-                    if holding_consumo_val:
-                        if holding_consumo_val.isdigit():
-                            id_holding_consumo = int(holding_consumo_val)
-                        else:
-                            id_holding_consumo = nome_to_id.get(holding_consumo_val)
-                    else:
-                        id_holding_consumo = None
+
+                    # Começamos buscando a holding de consumo do emissor
+                    holding_consumo = (
+                        int(holdings_consumo[i].strip())
+                        if i < len(holdings_consumo)
+                        and holdings_consumo[i]
+                        and holdings_consumo[i].strip().isdigit()
+                        else None
+                    )
 
                     # Montamos o dicionário com os dados do emissor
                     emissor = {
-                        # Nome do emissor e Cnpj
-                        'cdCnpj': cnpjs[i].strip() if i < len(cnpjs) else '',
+                        # Nome do emissor, ID e Cnpj
                         'idEmissor': id_emissor,
+                        'cdCnpj': cnpjs[i].strip() if i < len(cnpjs) else '',
                         'dsEmissor': nome.strip(),
 
                         # Buscamos se o emissor é uma holding e se consome de alguma holding
                         'icHolding': int(is_holdings[i] == 'sim'),
                         'icConsomeHolding': int(consome_holdings[i] == 'sim'),
-                        'idEmissorHoldingConsumo': id_holding_consumo,
+                        'idEmissorHoldingConsumo': holding_consumo if (i < len(consome_holdings) and consome_holdings[i] == 'sim') else None,
 
                         # Buscamos o setor e subsetor cadastrados
                         'dsSetor': setores_list[i].strip() if i < len(setores_list) and setores_list[i] else None,
                         'dsSubsetor': subsetores_list[i].strip() if i < len(subsetores_list) and subsetores_list[i] else None,
-                        
+
                         # Montamos a lista de emissores OC3 e CRIMS
-                        'cdEmissoresOC3': request.form.getlist( 
-                            f'emissores[{i}][oc3_codigos][]' 
-                        ), 
-                        'cdEmissoresCRIMS': request.form.getlist( 
-                            f'emissores[{i}][crims_codigos][]' 
-                        ) 
+                        'cdEmissoresOC3': request.form.getlist(
+                            f'emissores[{i}][oc3_codigos][]'
+                        ),
+                        'cdEmissoresCRIMS': request.form.getlist(
+                            f'emissores[{i}][crims_codigos][]'
+                        )
                     }
 
                     emissores.append(emissor)

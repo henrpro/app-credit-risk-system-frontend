@@ -1,5 +1,6 @@
 # Importações do projeto
 from blueprints.grupos_economicos.routes import grupos_economicos_blueprint
+from blueprints.solicitar_alcada.routes import solicitar_alcada_blueprint
 from blueprints.login.routes import login_blueprint, login_manager
 from config.config import init_config
 
@@ -12,6 +13,7 @@ app = Flask(__name__, template_folder='templates', static_folder='static')
 
 # Registra as blueprints
 app.register_blueprint(grupos_economicos_blueprint, url_prefix='/grupos-economicos')
+app.register_blueprint(solicitar_alcada_blueprint, url_prefix='/solicitar-alcada')
 app.register_blueprint(login_blueprint, url_prefix='/login')
 
 # Rota inicial da aplicação
