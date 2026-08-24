@@ -650,9 +650,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // =========================================================================
-    // Lógica de Zoom, Pan (Arrastar) e Escala Automática do Organograma
-    // =========================================================================
     const orgContainer = document.getElementById('orgViewportContainer');
     const orgViewport = document.getElementById('orgTreeViewport');
     const orgContent = document.getElementById('orgTreeContent');

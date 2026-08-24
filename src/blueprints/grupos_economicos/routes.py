@@ -8,6 +8,8 @@ from flask_login import login_required, current_user
 # Cria a blueprint
 grupos_economicos_blueprint = Blueprint('grupos_economicos', __name__, template_folder='templates', static_folder='static')
 
+# ______________________________ Geral _______________________________________
+
 @grupos_economicos_blueprint.route('/', methods=['GET'])
 @login_required
 def grupos_economicos():
@@ -16,6 +18,114 @@ def grupos_economicos():
         username=current_user.id,
         grupo=getattr(current_user, 'grupo', '')
     )
+
+# ______________________________ Cadastrar Grupo ______________________________
+
+@grupos_economicos_blueprint.route('/criar', methods=['GET', 'POST'])
+@login_required
+def criar_grupo_economico():
+    if request.method == 'POST':
+        try:
+            # Começamos buscando o nome do grupo econômico
+            ds_grupo = request.form.get('nomeGrupo', '').strip()
+
+            # Depois pegamos os dados dos emissores
+            cnpjs = request.form.getlist('cnpjEmissor[]')
+            nomes = request.form.getlist('nomeEmissor[]')
+            is_holdings = request.form.getlist('isHolding[]')
+            consome_holdings = request.form.getlist('consomeHolding[]')
+            holdings_consumo = request.form.getlist('holdingConsumo[]')
+            setores_list = request.form.getlist('setorEmissor[]')
+            subsetores_list = request.form.getlist('subsetorEmissor[]')
+
+            emissores = []
+
+            # Vamos iterar pelos emissores e colocar os dados dentro de uma lista
+            for i, nome in enumerate(nomes):
+                # Começamos buscando a holding de consumo do emissor
+                holding_consumo = ( 
+                    holdings_consumo[i].strip() 
+                    if i < len(holdings_consumo) 
+                    and holdings_consumo[i] 
+                    and holdings_consumo[i] != 'Nenhuma' 
+                    else None 
+                    )
+
+                # Montamos o dicionário com os dados do emissor
+                emissor = { 
+                    # Nome do emissor e Cnpj
+                    'cdCnpj': cnpjs[i].strip() if i < len(cnpjs) else '', 
+                    'dsEmissor': nome.strip(),
+
+                    # Buscamos se o emissor é uma holding e se consome de alguma holding
+                    'icHolding': int(is_holdings[i] == 'sim'), 
+                    'icConsomeHolding': int(consome_holdings[i] == 'sim'),
+                    'dsEmissorHoldingConsumo': holding_consumo,
+
+                    # Buscamos o setor e subsetor cadastrados
+                    'dsSetor': setores_list[i].strip() if i < len(setores_list) and setores_list[i] else None, 
+                    'dsSubsetor': subsetores_list[i].strip() if i < len(subsetores_list) and subsetores_list[i] else None, 
+
+                    # Montamos a lista de emissores OC3 e CRIMS
+                    'cdEmissoresOC3': request.form.getlist( 
+                        f'emissores[{i}][oc3_codigos][]' 
+                    ), 
+                    'cdEmissoresCRIMS': request.form.getlist( 
+                        f'emissores[{i}][crims_codigos][]' 
+                    ) 
+                } 
+                
+                emissores.append(emissor)
+
+            payload = {
+                'dsGrupo': ds_grupo,
+                'emissores': emissores
+            }
+            
+            resposta = APIGruposEconomicosService.registrar_grupo_economico(payload)
+            flash("Grupo econômico cadastrado com sucesso!", "success")
+            return redirect(url_for('grupos_economicos.grupos_economicos'))
+        except Exception as e:
+            flash(f"{str(e)}", "error")
+            return redirect(url_for('grupos_economicos.grupos_economicos'))
+            
+    else:
+        try:
+            setores = APIGruposEconomicosService.obtem_setores_cadastrados()
+            subsetores = APIGruposEconomicosService.obtem_subsetores_cadastrados()
+            return render_template(
+                'grupos_economicos_criar.html',
+                username=current_user.id,
+                grupo=getattr(current_user, 'grupo', ''),
+                setores=setores,
+                subsetores=subsetores
+            )
+        except Exception as e:
+            return redirect(url_for('grupos_economicos.grupos_economicos'))
+
+@grupos_economicos_blueprint.route('/api/emissores-oc3', methods=['GET'])
+@grupos_economicos_blueprint.route('/grupos-economicos/api/emissores-oc3', methods=['GET'])
+@login_required
+def api_obtem_emissores_oc3():
+    try:
+        filtros = request.args.to_dict()
+        dados = APIGruposEconomicosService.obtem_emissores_oc3(filtros=filtros)
+        return jsonify({"success": True, "data": dados})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e), "data": []}), 500
+
+@grupos_economicos_blueprint.route('/api/emissores-crims', methods=['GET'])
+@grupos_economicos_blueprint.route('/grupos-economicos/api/emissores-crims', methods=['GET'])
+@login_required
+def api_obtem_emissores_crims():
+    try:
+        filtros = request.args.to_dict()
+        dados = APIGruposEconomicosService.obtem_emissores_crims(filtros=filtros)
+        return jsonify({"success": True, "data": dados})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e), "data": []}), 500
+
+# ______________________________ Consultar Grupo ______________________________
 
 @grupos_economicos_blueprint.route('/consultar', methods=['GET', 'POST'])
 @login_required
@@ -123,6 +233,8 @@ def consultar_grupo_economico():
         organograma=organograma,
         ds_grupo_selecionado=grupo_selecionado
     )
+
+# ______________________________ Alterar Grupo ______________________________
 
 @grupos_economicos_blueprint.route('/alterar', methods=['GET', 'POST'])
 @login_required
@@ -298,33 +410,27 @@ def alterar_grupo_economico():
         subsetores=subsetores
     )
 
+# ______________________________ Deletar Grupo ______________________________
+
 @grupos_economicos_blueprint.route('/deletar', methods=['POST'])
 @grupos_economicos_blueprint.route('/deletar-grupo-economico', methods=['POST'])
 @login_required
 def deletar_grupo_economico():
     try:
-        ds_grupo = (
-            request.form.get('dsGrupo')
-            or request.form.get('dsGrupoOriginal')
-            or request.form.get('nomeGrupo')
-            or ''
-        ).strip()
+        # Começamos buscando o id grupo
+        ds_grupo = request.form.get('dsGrupo')
         id_grupo = request.form.get('idGrupo')
 
-        if not ds_grupo and request.is_json:
-            data = request.get_json() or {}
-            ds_grupo = str(data.get('dsGrupo') or data.get('nomeGrupo') or '').strip()
-            id_grupo = data.get('idGrupo')
-
-        if not ds_grupo:
+        # Se o id do grupo não for informado, raise exception
+        if not id_grupo:
             flash("Nome do grupo econômico não informado para exclusão.", "error")
             return redirect(url_for('grupos_economicos.alterar_grupo_economico'))
 
-        payload = {'dsGrupo': ds_grupo}
-        if id_grupo and str(id_grupo).isdigit():
-            payload['idGrupo'] = int(id_grupo)
-
+        # Montamos o payload e chamamos o backend
+        payload = {'idGrupo': int(id_grupo)}
         APIGruposEconomicosService.deletar_grupo_economico(payload)
+
+        # Redirect + mensagem de sucesso!
         flash(f"Grupo econômico '{ds_grupo}' deletado com sucesso!", "success")
         return redirect(url_for('grupos_economicos.grupos_economicos'))
 
@@ -332,106 +438,3 @@ def deletar_grupo_economico():
         flash(f"Erro ao deletar grupo econômico: {str(e)}", "error")
         return redirect(url_for('grupos_economicos.alterar_grupo_economico'))
 
-@grupos_economicos_blueprint.route('/criar', methods=['GET', 'POST'])
-@login_required
-def criar_grupo_economico():
-    if request.method == 'POST':
-        try:
-            # Começamos buscando o nome do grupo econômico
-            ds_grupo = request.form.get('nomeGrupo', '').strip()
-
-            # Depois pegamos os dados dos emissores
-            cnpjs = request.form.getlist('cnpjEmissor[]')
-            nomes = request.form.getlist('nomeEmissor[]')
-            is_holdings = request.form.getlist('isHolding[]')
-            consome_holdings = request.form.getlist('consomeHolding[]')
-            holdings_consumo = request.form.getlist('holdingConsumo[]')
-            setores_list = request.form.getlist('setorEmissor[]')
-            subsetores_list = request.form.getlist('subsetorEmissor[]')
-
-            emissores = []
-
-            # Vamos iterar pelos emissores e colocar os dados dentro de uma lista
-            for i, nome in enumerate(nomes):
-                # Começamos buscando a holding de consumo do emissor
-                holding_consumo = ( 
-                    holdings_consumo[i].strip() 
-                    if i < len(holdings_consumo) 
-                    and holdings_consumo[i] 
-                    and holdings_consumo[i] != 'Nenhuma' 
-                    else None 
-                    )
-
-                # Montamos o dicionário com os dados do emissor
-                emissor = { 
-                    # Nome do emissor e Cnpj
-                    'cdCnpj': cnpjs[i].strip() if i < len(cnpjs) else '', 
-                    'dsEmissor': nome.strip(),
-
-                    # Buscamos se o emissor é uma holding e se consome de alguma holding
-                    'icHolding': int(is_holdings[i] == 'sim'), 
-                    'icConsomeHolding': int(consome_holdings[i] == 'sim'),
-                    'dsEmissorHoldingConsumo': holding_consumo,
-
-                    # Buscamos o setor e subsetor cadastrados
-                    'dsSetor': setores_list[i].strip() if i < len(setores_list) and setores_list[i] else None, 
-                    'dsSubsetor': subsetores_list[i].strip() if i < len(subsetores_list) and subsetores_list[i] else None, 
-
-                    # Montamos a lista de emissores OC3 e CRIMS
-                    'cdEmissoresOC3': request.form.getlist( 
-                        f'emissores[{i}][oc3_codigos][]' 
-                    ), 
-                    'cdEmissoresCRIMS': request.form.getlist( 
-                        f'emissores[{i}][crims_codigos][]' 
-                    ) 
-                } 
-                
-                emissores.append(emissor)
-
-            payload = {
-                'dsGrupo': ds_grupo,
-                'emissores': emissores
-            }
-            
-            resposta = APIGruposEconomicosService.registrar_grupo_economico(payload)
-            flash("Grupo econômico cadastrado com sucesso!", "success")
-            return redirect(url_for('grupos_economicos.grupos_economicos'))
-        except Exception as e:
-            flash(f"{str(e)}", "error")
-            return redirect(url_for('grupos_economicos.grupos_economicos'))
-            
-    else:
-        try:
-            setores = APIGruposEconomicosService.obtem_setores_cadastrados()
-            subsetores = APIGruposEconomicosService.obtem_subsetores_cadastrados()
-            return render_template(
-                'grupos_economicos_criar.html',
-                username=current_user.id,
-                grupo=getattr(current_user, 'grupo', ''),
-                setores=setores,
-                subsetores=subsetores
-            )
-        except Exception as e:
-            return redirect(url_for('grupos_economicos.grupos_economicos'))
-
-@grupos_economicos_blueprint.route('/api/emissores-oc3', methods=['GET'])
-@grupos_economicos_blueprint.route('/grupos-economicos/api/emissores-oc3', methods=['GET'])
-@login_required
-def api_obtem_emissores_oc3():
-    try:
-        filtros = request.args.to_dict()
-        dados = APIGruposEconomicosService.obtem_emissores_oc3(filtros=filtros)
-        return jsonify({"success": True, "data": dados})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e), "data": []}), 500
-
-@grupos_economicos_blueprint.route('/api/emissores-crims', methods=['GET'])
-@grupos_economicos_blueprint.route('/grupos-economicos/api/emissores-crims', methods=['GET'])
-@login_required
-def api_obtem_emissores_crims():
-    try:
-        filtros = request.args.to_dict()
-        dados = APIGruposEconomicosService.obtem_emissores_crims(filtros=filtros)
-        return jsonify({"success": True, "data": dados})
-    except Exception as e:
-        return jsonify({"success": False, "error": str(e), "data": []}), 500
