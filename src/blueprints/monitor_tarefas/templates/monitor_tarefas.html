@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}CRS - Monitor de Tarefas{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('monitor_tarefas.static', filename='css/monitor_tarefas.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="pagetitle mb-4">
+  <h1 class="pagetitle-main">Monitor de Tarefas</h1>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('monitor_tarefas.static', filename='js/monitor_tarefas.js') }}"></script>
+{% endblock %}

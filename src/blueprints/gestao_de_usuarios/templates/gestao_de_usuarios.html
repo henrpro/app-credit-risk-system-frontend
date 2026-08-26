@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}CRS - Gestão de Usuários{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('gestao_de_usuarios.static', filename='css/gestao_de_usuarios.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="pagetitle mb-4">
+  <h1 class="pagetitle-main">Gestão de Usuários</h1>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('gestao_de_usuarios.static', filename='js/gestao_de_usuarios.js') }}"></script>
+{% endblock %}

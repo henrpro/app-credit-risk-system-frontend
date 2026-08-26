@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}CRS - Desenquadramentos{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('desenquadramentos.static', filename='css/desenquadramentos.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="pagetitle mb-4">
+  <h1 class="pagetitle-main">Desenquadramentos</h1>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('desenquadramentos.static', filename='js/desenquadramentos.js') }}"></script>
+{% endblock %}

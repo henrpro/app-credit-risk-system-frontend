@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}CRS - Consultar Limite{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('consultar_limite.static', filename='css/consultar_limite.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="pagetitle mb-4">
+  <h1 class="pagetitle-main">Consultar Limite</h1>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('consultar_limite.static', filename='js/consultar_limite.js') }}"></script>
+{% endblock %}

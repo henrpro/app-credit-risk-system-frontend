@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}CRS - Consulta de Solicitações{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('consulta_solicitacoes.static', filename='css/consulta_solicitacoes.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="pagetitle mb-4">
+  <h1 class="pagetitle-main">Consulta de Solicitações</h1>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('consulta_solicitacoes.static', filename='js/consulta_solicitacoes.js') }}"></script>
+{% endblock %}

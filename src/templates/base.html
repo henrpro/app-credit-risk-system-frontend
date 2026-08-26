@@ -91,7 +91,8 @@
                     <span>Home</span>
                 </a>
             </li>
-            <li class="nav-heading">Módulos</li>
+
+            <li class="nav-heading">Solicitações e Cadastros</li>
             <li class="nav-item">
                 <a class="nav-link collapsed" href="{{ url_for('grupos_economicos.grupos_economicos') }}">
                     <i class="bi bi-building"></i>
@@ -104,6 +105,68 @@
                     <span>Solicitar Alçada</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="{{ url_for('consulta_solicitacoes.consulta_solicitacoes') }}">
+                    <i class="bi bi-card-checklist"></i>
+                    <span>Consultar Solicitação</span>
+                </a>
+            </li>
+
+            <li class="nav-heading">Consultar</li>
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="{{ url_for('consultar_limite.consultar_limite') }}">
+                    <i class="bi bi-search"></i>
+                    <span>Consultar Limite</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="{{ url_for('historico_casos.historico_casos') }}">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Histórico de Casos</span>
+                </a>
+            </li>
+
+            <li class="nav-heading">Aprovações</li>
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="{{ url_for('aprovar_limite.aprovar_limite') }}">
+                    <i class="bi bi-check2-circle"></i>
+                    <span>Aprovar Limite</span>
+                </a>
+            </li>
+
+            {% if current_user.is_authenticated and current_user.grupo == 'ADMIN' %}
+            <li class="nav-heading">Riscos</li>
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="{{ url_for('alcadas_pendentes.alcadas_pendentes') }}">
+                    <i class="bi bi-hourglass-split"></i>
+                    <span>Alçadas Pendentes</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="{{ url_for('mapeamentos.mapeamentos') }}">
+                    <i class="bi bi-diagram-3"></i>
+                    <span>Mapeamentos</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="{{ url_for('gestao_de_usuarios.gestao_de_usuarios') }}">
+                    <i class="bi bi-people"></i>
+                    <span>Gestão de Usuários</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="{{ url_for('monitor_tarefas.monitor_tarefas') }}">
+                    <i class="bi bi-activity"></i>
+                    <span>Monitor de Tarefas</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="{{ url_for('desenquadramentos.desenquadramentos') }}">
+                    <i class="bi bi-exclamation-octagon"></i>
+                    <span>Desenquadramentos</span>
+                </a>
+            </li>
+            {% endif %}
         </ul>
     </aside>
 

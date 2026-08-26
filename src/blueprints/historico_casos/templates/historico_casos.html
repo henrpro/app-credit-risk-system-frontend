@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}CRS - Histórico de Casos{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('historico_casos.static', filename='css/historico_casos.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="pagetitle mb-4">
+  <h1 class="pagetitle-main">Histórico de Casos</h1>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('historico_casos.static', filename='js/historico_casos.js') }}"></script>
+{% endblock %}
