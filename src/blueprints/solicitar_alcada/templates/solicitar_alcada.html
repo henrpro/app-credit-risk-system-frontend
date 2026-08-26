@@ -11,384 +11,45 @@
   <h1 class="pagetitle-main">Solicitar Alçada</h1>
 </div>
 
-<!-- Card de Seleção e Busca do Grupo e Evento -->
 <div class="card p-4 mb-4">
-  <form id="formSolicitarAlcada" method="POST" class="needs-validation">
+  <form id="formSolicitarAlcada" method="POST" action="{{ url_for('solicitar_alcada.solicitar_alcada') }}" class="needs-validation">
     <div class="row align-items-end g-3">
       <div class="col-md-4 col-lg-4">
         <label for="selectGrupoEconomico" class="form-label">Grupo Econômico</label>
-        <select class="form-select" id="selectGrupoEconomico" name="dsGrupo" required>
-          <option value="" disabled {% if not grupo_selecionado %}selected{% endif %}>Selecione um grupo econômico...</option>
+        <select class="form-select" id="selectGrupoEconomico" name="dsGrupo" required onchange="this.form.action.value='atualizar_grupos'; this.form.submit();">
+          <option value="" disabled {% if not grupo_selecionado %}selected{% endif %}>Selecione um grupo econômico...
+          </option>
           {% for item in grupos_cadastrados %}
-            {% set grupo_nome = item.dsGrupo if item.dsGrupo is defined else item %}
-            <option value="{{ grupo_nome }}" {% if grupo_selecionado == grupo_nome %}selected{% endif %}>{{ grupo_nome }}</option>
+          {% set grupo_nome = item.dsGrupo if item.dsGrupo is defined else item %}
+          <option value="{{ grupo_nome }}" {% if grupo_selecionado==grupo_nome %}selected{% endif %}>{{ grupo_nome }}
+          </option>
           {% endfor %}
         </select>
       </div>
       <div class="col-md-5 col-lg-6">
         <label for="selectTipoEvento" class="form-label">Evento</label>
-        <select class="form-select" id="selectTipoEvento" name="idTipoEvento" required {% if not grupo_selecionado %}disabled{% endif %}>
+        <select class="form-select" id="selectTipoEvento" name="evento_selecionado" required {% if not grupo_selecionado %}disabled{% endif %}>
           {% if not grupo_selecionado %}
-            <option value="" disabled selected>Selecione um grupo econômico primeiro...</option>
+          <option value="" disabled selected>Selecione um grupo econômico primeiro...</option>
           {% else %}
-            <option value="" disabled {% if not id_tipo_evento_selecionado %}selected{% endif %}>Selecione um evento...</option>
-            {% for ev in eventos_cadastrados %}
-              {% set ev_id = ev.idTipoEvento if ev.idTipoEvento is defined else (ev.idEvento if ev.idEvento is defined else (ev.id if ev.id is defined else ev)) %}
-              {% set ev_nome = ev.dsTipoEvento if ev.dsTipoEvento is defined else (ev.dsEvento if ev.dsEvento is defined else (ev.nome if ev.nome is defined else ev)) %}
-              <option value="{{ ev_id }}" {% if id_tipo_evento_selecionado and id_tipo_evento_selecionado|string == ev_id|string %}selected{% endif %}>{{ ev_nome }}</option>
-            {% endfor %}
+          <option value="" disabled {% if not evento_selecionado %}selected{% endif %}>Selecione um evento...
+          </option>
+          {% for ev in eventos_cadastrados %}
+          {% set ev_nome = ev.get('dsTipoEvento') or ev.get('dsEvento') or ev.get('nome') or ev %}
+          <option value="{{ ev_nome }}" {% if evento_selecionado and evento_selecionado == ev_nome %}selected{% endif %}>{{ ev_nome }}</option>
+          {% endfor %}
           {% endif %}
         </select>
       </div>
       <div class="col-md-3 col-lg-2">
-        <button type="submit" id="btnIniciarSolicitacao" class="btn-orange w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+        <input type="hidden" name="action" value="iniciar_formulario">
+        <button type="submit" id="btnIniciarSolicitacao" class="btn-orange w-100 py-2 d-flex align-items-center justify-content-center gap-2" onclick="this.form.action.value='iniciar_formulario';">
           <i class="bi bi-play-circle"></i> Iniciar
         </button>
       </div>
     </div>
   </form>
 </div>
-
-<!-- Dados de Ratings e Flexibilização em JSON para uso no JS -->
-<script id="ratingsDataJson" type="application/json">{{ ratings_cadastrados|tojson }}</script>
-<script id="flexibilizacaoDataJson" type="application/json">{{ (dados_flexibilizacao or [])|tojson }}</script>
-
-<!-- Formulário de Solicitação de Alçada (Exibido após clicar em Iniciar) -->
-{% if grupo_selecionado %}
-{% set is_abertura = (ds_tipo_evento == 'Abertura de Limite') %}
-{% set is_prorrogacao = (ds_tipo_evento == 'Prorrogação') %}
-{% set is_rating_runoff = (ds_tipo_evento in ['Downgrade de Rating', 'Upgrade de Rating', 'Downgrade de Rating + Run-Off', 'Upgrade de Rating + Run-Off', 'Run-Off']) %}
-{% set is_flexibilizacao = (ds_tipo_evento == 'Flexibilização') %}
-{% set is_flex_sem_lmax = (ds_tipo_evento == 'Flexibilização sem Alteração de LMAX') %}
-{% set can_edit_limits = not (is_prorrogacao or is_rating_runoff) %}
-{% set can_edit_rating = not is_prorrogacao and (ds_tipo_evento != 'Run-Off') %}
-{% set can_edit_runoff = not is_prorrogacao and (is_abertura or ds_tipo_evento in ['Renovação com Downgrade de Rating + Run-Off', 'Renovação com Upgrade de Rating + Run-Off', 'Downgrade de Rating + Run-Off', 'Upgrade de Rating + Run-Off', 'Run-Off', 'Abertura de Sublimite', 'Aumento de Limite', 'Redução de Limite', 'Renovação', 'Flexibilização', 'Flexibilização sem Alteração de LMAX']) %}
-
-<form id="formSalvarSolicitacaoAlcada" method="POST" class="needs-validation" data-tipo-evento="{{ ds_tipo_evento or '' }}" data-is-abertura="{{ '1' if is_abertura else '0' }}">
-  <input type="hidden" name="action" value="salvar">
-  <input type="hidden" name="dsGrupo" value="{{ grupo_selecionado }}">
-  <input type="hidden" name="idTipoEvento" value="{{ id_tipo_evento_selecionado }}">
-  <input type="hidden" name="dsTipoEvento" value="{{ ds_tipo_evento or '' }}">
-
-  <!-- ______________________________ 1. Seção do Grupo Econômico (Consolidação) ______________________________ -->
-  <div class="card p-4 mb-4 section-card">
-    <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-      <h4 class="section-title mb-0">
-        <i class="bi bi-building-gear me-2"></i>Grupo Econômico: <span class="entity-name-highlight">{{ grupo_selecionado }}</span>
-      </h4>
-      <span class="badge bg-secondary px-3 py-2">Visão Consolidada</span>
-    </div>
-
-    <!-- Controles Superiores do Grupo Econômico (Rating Atual, Proposto e Share da Dívida) -->
-    <div class="card-indicators-bar mb-4">
-      <div class="row g-3 align-items-center">
-        <div class="col-md-4">
-          <div class="indicator-field-group">
-            <label class="indicator-field-label">Rating Atual</label>
-            <div class="indicator-field-value">
-              {% if not is_abertura %}
-                <span class="badge-indicator-display">{{ grupo_info.cdRatingGrupo if (grupo_info and grupo_info.cdRatingGrupo) else '-' }}</span>
-                <input type="hidden" name="cdRatingGrupoAtual" value="{{ grupo_info.cdRatingGrupo if (grupo_info and grupo_info.cdRatingGrupo) else '' }}">
-              {% else %}
-                <span class="text-muted small">-</span>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="indicator-field-group">
-            <label class="indicator-field-label" for="selectRatingGrupoProposto">Rating Proposto <span class="text-danger">*</span></label>
-            <select class="form-select form-select-sm select-indicator" id="selectRatingGrupoProposto" name="cdRatingGrupoProposto" {% if can_edit_rating %}required{% else %}disabled{% endif %}>
-              <option value="">Selecione...</option>
-              {% for r in ratings_cadastrados %}
-                {% set r_cod = r.cdRating if r.cdRating is defined else r %}
-                <option value="{{ r_cod }}" {% if grupo_info and grupo_info.cdRatingGrupo and grupo_info.cdRatingGrupo == r_cod %}selected{% endif %}>{{ r_cod }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="indicator-field-group">
-            <label class="indicator-field-label" for="inputShareDividaGrupo">Share da Dívida (%)</label>
-            <div class="input-group input-group-sm">
-              <input type="number" step="0.01" min="0" max="100" class="form-control input-indicator" id="inputShareDividaGrupo" name="vlShareDividaGrupo" placeholder="ex: 25.00" value="{{ grupo_info.vlShareDivida if (grupo_info and grupo_info.vlShareDivida) else '' }}">
-              <span class="input-group-text">%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tabela Unificada Consolidada do Grupo Econômico -->
-    <div class="table-unificada-wrapper">
-      <table class="table-unificada" id="tabelaGrupoConsolidada">
-        <thead>
-          <tr>
-            <th class="th-center th-prazo" style="width: {% if is_abertura %}15%{% else %}10%{% endif %};">Prazo</th>
-            {% if not is_abertura %}
-              <th class="th-atual" style="width: 15%;">Total Atual</th>
-            {% endif %}
-            <th class="th-proposto" style="width: {% if is_abertura %}28%{% else %}15%{% endif %};">Total Proposto</th>
-            {% if not is_abertura %}
-              <th class="th-atual" style="width: 15%;">Terceiros Atual</th>
-            {% endif %}
-            <th class="th-proposto" style="width: {% if is_abertura %}28%{% else %}15%{% endif %};">Terceiros Proposto</th>
-            {% if not is_abertura %}
-              <th class="th-atual" style="width: 15%;">RT Atual</th>
-            {% endif %}
-            <th class="th-proposto" style="width: {% if is_abertura %}28%{% else %}15%{% endif %};">RT Proposto</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Linhas calculadas dinamicamente via JS agrupando e somando todos os emissores -->
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ______________________________ 2. Seção de Detalhamento por Emissor ______________________________ -->
-  <div class="mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h4 class="section-heading-main fs-4 mb-0">Emissores do Grupo</h4>
-      <span class="badge bg-secondary">{{ emissores_info|length if emissores_info else 1 }} emissor(es)</span>
-    </div>
-
-    {% set emissores_lista = emissores_info if (emissores_info and emissores_info|length > 0) else [{'idEmissor': 1, 'dsEmissor': grupo_selecionado, 'linhas': []}] %}
-
-    {% for e in emissores_lista %}
-      {% set emissor_idx = loop.index0 %}
-      {% set rating_emissor_atual = e.cdRatingEmissor or '' %}
-      <div class="card p-4 mb-4 emissor-card section-card" data-emissor-index="{{ emissor_idx }}" data-emissor-id="{{ e.idEmissor or '' }}" data-emissor-nome="{{ e.dsEmissor or '' }}">
-        <input type="hidden" name="emissores[{{ emissor_idx }}][idEmissor]" value="{{ e.idEmissor or '' }}">
-        <input type="hidden" name="emissores[{{ emissor_idx }}][dsEmissor]" value="{{ e.dsEmissor or '' }}">
-
-        <!-- Cabeçalho do Emissor com Título e Toolbar com Toggle de Run-Off -->
-        <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-          <h5 class="section-title mb-0">
-            <i class="bi bi-building me-2"></i>Emissor #{{ loop.index }}: <span class="entity-name-highlight">{{ e.dsEmissor or ('Emissor #' ~ loop.index) }}</span>
-          </h5>
-
-          <div class="emissor-actions-toolbar">
-            {% if can_edit_limits %}
-              <!-- Botão Adicionar Linha -->
-              <button type="button" class="btn-add-row btn-add-emissor-row" data-emissor-index="{{ emissor_idx }}">
-                <i class="bi bi-plus-circle"></i> Adicionar Linha
-              </button>
-
-              <!-- Botão Adicionar Limite Meta -->
-              <button type="button" class="btn-meta btn-open-meta-modal" data-emissor-index="{{ emissor_idx }}" data-emissor-nome="{{ e.dsEmissor or ('Emissor #' ~ loop.index) }}">
-                <i class="bi bi-bullseye"></i> Adicionar Limite Meta
-              </button>
-            {% endif %}
-
-            <!-- Switch Estilo Pílula Emissor em Run-Off (Compacto) -->
-            <div class="runoff-switch-wrapper d-flex align-items-center gap-2">
-              <span class="runoff-switch-label">Run-Off</span>
-              <label class="image-style-switch" for="runOff_{{ emissor_idx }}">
-                <input type="checkbox" id="runOff_{{ emissor_idx }}" class="check-run-off" name="emissores[{{ emissor_idx }}][icRunOff]" value="1" {% if e.icRunOff %}checked{% endif %} {% if not can_edit_runoff %}disabled{% endif %}>
-                <span class="switch-slider"></span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <!-- Controles Superiores do Emissor (Rating Atual, Proposto e Share da Dívida) -->
-        <div class="card-indicators-bar mb-4">
-          <div class="row g-3 align-items-center">
-            <div class="col-md-4">
-              <div class="indicator-field-group">
-                <label class="indicator-field-label">Rating Atual</label>
-                <div class="indicator-field-value">
-                  {% if not is_abertura %}
-                    <span class="badge-indicator-display">{{ rating_emissor_atual or '-' }}</span>
-                    <input type="hidden" class="input-rating-atual" name="emissores[{{ emissor_idx }}][cdRatingAtual]" value="{{ rating_emissor_atual }}">
-                  {% else %}
-                    <span class="text-muted small">-</span>
-                  {% endif %}
-                </div>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="indicator-field-group">
-                <label class="indicator-field-label" for="ratingProp_{{ emissor_idx }}">Rating Proposto <span class="text-danger">*</span></label>
-                <select class="form-select form-select-sm select-indicator select-rating-proposto-emissor" id="ratingProp_{{ emissor_idx }}" name="emissores[{{ emissor_idx }}][cdRatingProposto]" {% if can_edit_rating %}required{% else %}disabled{% endif %}>
-                  <option value="">Selecione...</option>
-                  {% for r in ratings_cadastrados %}
-                    {% set r_cod = r.cdRating if r.cdRating is defined else r %}
-                    <option value="{{ r_cod }}" {% if rating_emissor_atual and rating_emissor_atual == r_cod %}selected{% endif %}>{{ r_cod }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="indicator-field-group">
-                <label class="indicator-field-label" for="shareDivida_{{ emissor_idx }}">Share da Dívida (%)</label>
-                <div class="input-group input-group-sm">
-                  <input type="number" step="0.01" min="0" max="100" class="form-control input-indicator" id="shareDivida_{{ emissor_idx }}" name="emissores[{{ emissor_idx }}][vlShareDivida]" placeholder="ex: 15.50" value="{{ e.vlShareDivida if e.vlShareDivida is defined else '' }}">
-                  <span class="input-group-text">%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tabela Unificada do Emissor (Apenas Prazos e Limites Financeiros) -->
-        <div class="table-unificada-wrapper">
-          <table class="table-unificada table-emissor-unificada" data-emissor-index="{{ emissor_idx }}" data-emissor-id="{{ e.idEmissor or '' }}">
-            <thead>
-              <tr>
-                <th class="th-center th-prazo" style="width: {% if is_abertura %}15%{% else %}10%{% endif %};">Prazo</th>
-                {% if not is_abertura %}
-                  <th class="th-atual" style="width: 15%;">Total Atual</th>
-                {% endif %}
-                <th class="th-proposto" style="width: {% if is_abertura %}28%{% else %}15%{% endif %};">Total Proposto</th>
-                {% if not is_abertura %}
-                  <th class="th-atual" style="width: 15%;">Terceiros Atual</th>
-                {% endif %}
-                <th class="th-proposto" style="width: {% if is_abertura %}28%{% else %}15%{% endif %};">Terceiros Proposto</th>
-                {% if not is_abertura %}
-                  <th class="th-atual" style="width: 15%;">RT Atual</th>
-                {% endif %}
-                <th class="th-proposto" style="width: {% if is_abertura %}28%{% else %}15%{% endif %};">RT Proposto</th>
-                {% if can_edit_limits %}
-                  <th style="width: 5%;"></th>
-                {% endif %}
-              </tr>
-            </thead>
-            <tbody>
-              {% set linhas_emissor = e.linhas if (e.linhas is defined and e.linhas|length > 0) else [] %}
-              {% if linhas_emissor|length > 0 and not is_abertura %}
-                {% for linha in linhas_emissor %}
-                  {% set p_idx = loop.index0 %}
-                  {% set terc_atual = linha.vlTerceiros if linha.vlTerceiros is not none else '' %}
-                  {% set rt_atual = linha.vlReservaTecnica if linha.vlReservaTecnica is not none else '' %}
-                  <tr class="emissor-table-row">
-                    <td class="text-center">
-                      <input type="number" step="1" min="1" class="table-input input-prazo" name="emissores[{{ emissor_idx }}][prazos][]" value="{{ linha.vlPrazo or '' }}" required {% if not can_edit_limits %}readonly disabled{% endif %}>
-                      <div class="row-validation-feedback cascade-feedback d-none"></div>
-                    </td>
-                    <td>
-                      <span class="cell-total-calc total-atual-calc cell-val-atual">0,00</span>
-                      <input type="hidden" class="input-hidden-total-atual" name="emissores[{{ emissor_idx }}][totais_atual][]" value="0">
-                    </td>
-                    <td>
-                      <span class="cell-total-calc total-proposto total-proposto-calc cell-val-proposto">0,00</span>
-                      <input type="hidden" class="input-hidden-total-proposto" name="emissores[{{ emissor_idx }}][totais_proposto][]" value="0">
-                      <div class="row-validation-feedback flex-feedback d-none"></div>
-                    </td>
-                    <td>
-                      <input type="number" step="0.01" min="0" class="table-input input-terceiros-atual cell-readonly cell-val-atual" name="emissores[{{ emissor_idx }}][terceiros_atual][]" value="{{ terc_atual }}" placeholder="0,00" readonly disabled tabindex="-1">
-                    </td>
-                    <td>
-                      <input type="number" step="0.01" min="0" class="table-input input-terceiros-proposto cell-val-proposto" name="emissores[{{ emissor_idx }}][terceiros_proposto][]" value="{{ terc_atual }}" placeholder="0,00" required {% if not can_edit_limits %}readonly disabled{% endif %}>
-                    </td>
-                    <td>
-                      <input type="number" step="0.01" min="0" class="table-input input-rt-atual cell-readonly cell-val-atual" name="emissores[{{ emissor_idx }}][rts_atual][]" value="{{ rt_atual }}" placeholder="0,00" readonly disabled tabindex="-1">
-                    </td>
-                    <td>
-                      <input type="number" step="0.01" min="0" class="table-input input-rt-proposto cell-val-proposto" name="emissores[{{ emissor_idx }}][rts_proposto][]" value="{{ rt_atual }}" placeholder="0,00" required {% if not can_edit_limits %}readonly disabled{% endif %}>
-                    </td>
-                    {% if can_edit_limits %}
-                      <td class="text-center">
-                        <button type="button" class="btn-remove-row" title="Remover Linha"><i class="bi bi-trash"></i></button>
-                      </td>
-                    {% endif %}
-                  </tr>
-                {% endfor %}
-              {% endif %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    {% endfor %}
-  </div>
-
-  <!-- Botão de Envio / Submissão da Solicitação -->
-  <div class="row mt-4 mb-5">
-    <div class="col-12 text-center">
-      <button type="submit" id="btnSalvarSolicitacao" class="btn-orange px-5 py-2 fs-6">
-        <i class="bi bi-check2-circle me-2"></i>Salvar Solicitação de Alçada
-      </button>
-    </div>
-  </div>
-</form>
-
-<!-- ______________________________ Modal de Limite Meta ______________________________ -->
-<div class="modal fade" id="modalLimiteMeta" tabindex="-1" aria-labelledby="modalMetaEmissorNome" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header modal-meta-header">
-        <h5 class="modal-title modal-meta-title" id="modalMetaEmissorNome">Limite Meta</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body p-4">
-        <!-- Campos de Configuração do Limite Meta -->
-        <div class="row g-3 mb-4">
-          <div class="col-md-4">
-            <label class="form-label small">Data Vencimento Limite Meta <span class="text-danger">*</span></label>
-            <input type="date" class="form-control form-control-sm" id="metaDtVencimento" required>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label small">Rating Proposto</label>
-            <select class="form-select form-select-sm" id="metaSelectRating">
-              <option value="">Selecione...</option>
-              {% for r in ratings_cadastrados %}
-                {% set r_cod = r.cdRating if r.cdRating is defined else r %}
-                <option value="{{ r_cod }}">{{ r_cod }}</option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label small">% Share da Dívida</label>
-            <input type="number" step="0.01" min="0" max="100" class="form-control form-control-sm" id="metaInputShare" placeholder="0,00%">
-          </div>
-        </div>
-
-        <!-- Tabela do Limite Meta (Apenas Proposto) -->
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h6 class="fw-bold mb-0 text-warning"><i class="bi bi-table me-1"></i>Limites Meta Propostos</h6>
-          <button type="button" class="btn-add-row" id="btnAddMetaRow">
-            <i class="bi bi-plus-circle"></i> Adicionar Linha
-          </button>
-        </div>
-
-        <div class="table-unificada-wrapper">
-          <table class="table-unificada" id="tabelaModalLimiteMeta">
-            <thead>
-              <tr>
-                <th class="th-center" style="width: 20%;">Prazo</th>
-                <th class="th-proposto" style="width: 25%;">Total Proposto</th>
-                <th class="th-proposto" style="width: 25%;">Terceiros Proposto</th>
-                <th class="th-proposto" style="width: 25%;">RT Proposto</th>
-                <th style="width: 5%;"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Linhas preenchidas dinamicamente via JS -->
-            </tbody>
-            <tfoot>
-              <tr class="table-footer-total">
-                <td class="th-center">Total</td>
-                <td class="meta-sum-total text-warning">0,00</td>
-                <td class="meta-sum-terceiros text-warning">0,00</td>
-                <td class="meta-sum-rt text-warning">0,00</td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-orange px-4" id="btnSalvarModalMeta">
-          <i class="bi bi-check2 me-1"></i>Confirmar Limite Meta
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-{% endif %}
-
 
 {% endblock %}
 

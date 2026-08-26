@@ -226,7 +226,6 @@ document.addEventListener('DOMContentLoaded', function () {
         // Ordena por prazo crescente para validação de cascata: P1 < P2 < P3...
         parsedRows.sort((a, b) => a.prazo - b.prazo);
 
-        // ______________________________ Regra C: Validação de Cascata ______________________________
         // O valor de um prazo menor DEVE ser >= ao de um prazo maior: Total(P_i) >= Total(P_i+1)
         for (let i = 0; i < parsedRows.length; i++) {
             const current = parsedRows[i];
@@ -250,7 +249,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // ______________________________ Trava de Flexibilização ______________________________
         if (isFlexibilizacao) {
             parsedRows.forEach(item => {
                 const disp = flexDisponivelMap[`${emissorId}_${item.prazo}`] ?? flexDisponivelMap[`${emissorNome}_${item.prazo}`] ?? 0;
@@ -273,7 +271,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // ______________________________ Totalizador do Emissor (Exposição Máxima) ______________________________
         let maxTotalAtual = 0;
         let maxTotalProp = 0;
         let maxTercAtual = 0;
@@ -322,6 +319,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const emissorTables = document.querySelectorAll('.table-emissor-unificada');
         const mapPrazos = {}; // prazo -> { totalAtual, totalProp, tercAtual, tercProp, rtAtual, rtProp }
+        const globalPrazosSet = new Set();
+        const emissoresData = [];
 
         let grandTotAtual = 0;
         let grandTotProp = 0;
@@ -340,6 +339,8 @@ document.addEventListener('DOMContentLoaded', function () {
             grandRtProp += parseFloat(table.dataset.maxRtProp || 0);
 
             const rows = table.querySelectorAll('tbody tr.emissor-table-row');
+            const emissorRowsData = [];
+
             rows.forEach(row => {
                 const prazoInput = row.querySelector('.input-prazo');
                 const prazoStr = prazoInput ? prazoInput.value.trim() : '';
@@ -347,37 +348,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (prazoStr !== '') {
                     const prazoKey = parseInt(prazoStr, 10);
                     if (!isNaN(prazoKey)) {
-                        const tercAtual = parseVal(row.querySelector('.input-terceiros-atual')?.value);
-                        const rtAtual = parseVal(row.querySelector('.input-rt-atual')?.value);
-                        const totalAtual = tercAtual + rtAtual;
-
-                        const tercProp = parseVal(row.querySelector('.input-terceiros-proposto')?.value);
-                        const rtProp = parseVal(row.querySelector('.input-rt-proposto')?.value);
-                        const totalProp = tercProp + rtProp;
-
-                        if (!mapPrazos[prazoKey]) {
-                            mapPrazos[prazoKey] = {
-                                totalAtual: 0,
-                                totalProp: 0,
-                                tercAtual: 0,
-                                tercProp: 0,
-                                rtAtual: 0,
-                                rtProp: 0
-                            };
-                        }
-
-                        mapPrazos[prazoKey].totalAtual += totalAtual;
-                        mapPrazos[prazoKey].totalProp += totalProp;
-                        mapPrazos[prazoKey].tercAtual += tercAtual;
-                        mapPrazos[prazoKey].tercProp += tercProp;
-                        mapPrazos[prazoKey].rtAtual += rtAtual;
-                        mapPrazos[prazoKey].rtProp += rtProp;
+                        globalPrazosSet.add(prazoKey);
+                        emissorRowsData.push({
+                            prazo: prazoKey,
+                            tercAtual: parseVal(row.querySelector('.input-terceiros-atual')?.value),
+                            rtAtual: parseVal(row.querySelector('.input-rt-atual')?.value),
+                            tercProp: parseVal(row.querySelector('.input-terceiros-proposto')?.value),
+                            rtProp: parseVal(row.querySelector('.input-rt-proposto')?.value),
+                        });
                     }
                 }
             });
+
+            // Ordena os prazos do emissor crescente
+            emissorRowsData.sort((a, b) => a.prazo - b.prazo);
+            emissoresData.push(emissorRowsData);
         });
 
-        const prazosOrdenados = Object.keys(mapPrazos).map(Number).sort((a, b) => a - b);
+        const prazosOrdenados = Array.from(globalPrazosSet).sort((a, b) => a - b);
         grupoTbody.innerHTML = '';
 
         if (prazosOrdenados.length === 0) {
@@ -390,8 +378,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 </tr>
             `;
         } else {
-            prazosOrdenados.forEach(prazo => {
-                const item = mapPrazos[prazo];
+            prazosOrdenados.forEach(P => {
+                mapPrazos[P] = { totalAtual: 0, totalProp: 0, tercAtual: 0, tercProp: 0, rtAtual: 0, rtProp: 0 };
+                
+                emissoresData.forEach(emissorRows => {
+                    // Para cada emissor, se não existir o prazo exato, consideramos o valor do primeiro prazo maior ou igual (Cascata)
+                    const matchingRow = emissorRows.find(r => r.prazo >= P);
+                    if (matchingRow) {
+                        mapPrazos[P].tercAtual += matchingRow.tercAtual;
+                        mapPrazos[P].rtAtual += matchingRow.rtAtual;
+                        mapPrazos[P].tercProp += matchingRow.tercProp;
+                        mapPrazos[P].rtProp += matchingRow.rtProp;
+                        mapPrazos[P].totalAtual += (matchingRow.tercAtual + matchingRow.rtAtual);
+                        mapPrazos[P].totalProp += (matchingRow.tercProp + matchingRow.rtProp);
+                    }
+                });
+                
+                const item = mapPrazos[P];
                 const tr = document.createElement('tr');
 
                 // Trava de LMAX Global (Flexibilização sem Alteração de LMAX)
@@ -403,14 +406,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (isAbertura) {
                     tr.innerHTML = `
-                        <td class="text-center th-prazo-val">${prazo}</td>
+                        <td class="text-center th-prazo-val">${P}</td>
                         <td class="text-end cell-val-proposto">${formatNumber(item.totalProp)}</td>
                         <td class="text-end cell-val-proposto">${formatNumber(item.tercProp)}</td>
                         <td class="text-end cell-val-proposto">${formatNumber(item.rtProp)}</td>
                     `;
                 } else {
                     tr.innerHTML = `
-                        <td class="text-center th-prazo-val">${prazo}</td>
+                        <td class="text-center th-prazo-val">${P}</td>
                         <td class="text-end cell-val-atual">${formatNumber(item.totalAtual)}</td>
                         <td class="text-end cell-val-proposto ${lmaxViolation ? 'text-danger fw-bold' : ''}">
                             ${formatNumber(item.totalProp)}
@@ -469,8 +472,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-
-    // ______________________________ Modal de Limite Meta ______________________________
     const modalEl = document.getElementById('modalLimiteMeta');
     const bsModal = modalEl ? new bootstrap.Modal(modalEl) : null;
     let currentMetaEmissorIdx = null;
@@ -489,16 +490,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         tr.innerHTML = `
             <td class="text-center">
-                <input type="number" step="1" min="0" class="table-input input-prazo-meta" value="${prazoVal}" required>
+                <input type="number" step="1" min="0" class="table-input input-prazo input-prazo-meta" value="${prazoVal}" required>
             </td>
             <td>
-                <span class="cell-total-calc total-proposto total-meta-calc">${formatNumber(totalPropCalc)}</span>
+                <span class="cell-total-calc total-proposto total-meta-calc cell-val-proposto">${formatNumber(totalPropCalc)}</span>
             </td>
             <td>
-                <input type="number" step="0.01" min="0" class="table-input input-terceiros-meta" value="${tercPropVal}" placeholder="0,00">
+                <input type="number" step="0.01" min="0" class="table-input input-terceiros-meta cell-val-proposto" value="${tercPropVal}" placeholder="0,00">
             </td>
             <td>
-                <input type="number" step="0.01" min="0" class="table-input input-rt-meta" value="${rtPropVal}" placeholder="0,00">
+                <input type="number" step="0.01" min="0" class="table-input input-rt-meta cell-val-proposto" value="${rtPropVal}" placeholder="0,00">
             </td>
             <td class="text-center">
                 <button type="button" class="btn-remove-row btn-remove-meta-row" title="Remover"><i class="bi bi-trash"></i></button>
@@ -695,13 +696,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     const inTerc = document.createElement('input');
                     inTerc.type = 'hidden';
                     inTerc.name = `emissores[${currentMetaEmissorIdx}][meta][rows][${rIdx}][terceiros]`;
-                    inTerc.value = r.terceirosProposto;
+                    inTerc.value = r.terceirosProposto !== '' ? r.terceirosProposto : '0';
                     hiddenContainer.appendChild(inTerc);
 
                     const inRt = document.createElement('input');
                     inRt.type = 'hidden';
                     inRt.name = `emissores[${currentMetaEmissorIdx}][meta][rows][${rIdx}][rt]`;
-                    inRt.value = r.rtProposto;
+                    inRt.value = r.rtProposto !== '' ? r.rtProposto : '0';
                     hiddenContainer.appendChild(inRt);
                 });
 
@@ -717,7 +718,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ______________________________ Carregamento Dinâmico de Eventos por Grupo ______________________________
     const selectGrupo = document.getElementById('selectGrupoEconomico');
     const selectEvento = document.getElementById('selectTipoEvento');
 
@@ -752,7 +752,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         const id = ev.idTipoEvento ?? ev.idEvento ?? ev.id ?? ev;
                         const nome = ev.dsTipoEvento ?? ev.dsEvento ?? ev.nome ?? ev;
                         const option = document.createElement('option');
-                        option.value = id;
+                        option.value = nome;
                         option.textContent = nome;
                         selectEvento.appendChild(option);
                     });
@@ -766,7 +766,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ______________________________ Validação de Submissão do Formulário ______________________________
     if (formSalvar) {
         formSalvar.addEventListener('submit', function (e) {
             // Se o formulário estiver em modo somente-leitura (Prorrogação), pode enviar normalmente
@@ -786,34 +785,43 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
 
-            // 2. Validação do Rating Proposto de cada Emissor (Obrigatório)
+            // 2. Validação do Rating Proposto de cada Emissor (Obrigatório se houver limites)
             if (canEditRating) {
                 const emissorCards = document.querySelectorAll('.emissor-card');
                 for (const card of emissorCards) {
-                    const emissorNome = card.dataset.emissorNome || 'Emissor';
-                    const selRating = card.querySelector('.select-rating-proposto-emissor');
-                    if (selRating && !selRating.value.trim()) {
-                        e.preventDefault();
-                        selRating.focus();
-                        alert(`Erro de validação: O Rating Proposto para o emissor "${emissorNome}" é obrigatório.`);
-                        selRating.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        return;
+                    const rows = card.querySelectorAll('.emissor-table-row');
+                    // Só obriga o rating se o emissor tiver algum prazo cadastrado
+                    if (rows.length > 0) {
+                        const emissorNome = card.dataset.emissorNome || 'Emissor';
+                        const selRating = card.querySelector('.select-rating-proposto-emissor');
+                        if (selRating && !selRating.value.trim()) {
+                            e.preventDefault();
+                            selRating.focus();
+                            alert(`Erro de validação: O Rating Proposto para o emissor "${emissorNome}" é obrigatório, pois existem limites cadastrados.`);
+                            selRating.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            return;
+                        }
                     }
                 }
             }
 
-            // 3. Validação dos Campos de Prazo, Terceiros Proposto e RT Proposto (Obrigatórios e Positivos)
+            // 3. Validação dos Campos de Prazo e Descarte de Emissores Vazios
             if (canEditLimits) {
                 const emissorCards = document.querySelectorAll('.emissor-card');
                 for (const card of emissorCards) {
                     const emissorNome = card.dataset.emissorNome || 'Emissor';
                     const rows = card.querySelectorAll('.emissor-table-row');
+                    const selRating = card.querySelector('.select-rating-proposto-emissor');
+                    const ratingValue = selRating ? selRating.value.trim() : '';
 
+                    // Se não houver nenhum limite...
                     if (rows.length === 0) {
-                        e.preventDefault();
-                        alert(`Erro de validação: O emissor "${emissorNome}" deve conter ao menos um prazo com limite cadastrado.`);
-                        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        return;
+                        // E também não houver rating, nós ignoramos completamente o emissor e não enviamos pro backend
+                        if (!ratingValue) {
+                            const allInputs = card.querySelectorAll('input, select, textarea');
+                            allInputs.forEach(inp => inp.disabled = true);
+                        }
+                        continue;
                     }
 
                     for (const row of rows) {
