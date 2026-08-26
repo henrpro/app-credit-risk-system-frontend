@@ -162,9 +162,9 @@ def solicitar_alcada_formulario():
             # Começamos buscando a action
             action = request.form.get('action')
             if action == 'salvar_alcada':
-                # Buscamos os dados do formulário inicial
-                grupo_selecionado = request.args.get('grupo_selecionado')
-                evento_selecionado = request.args.get('evento_selecionado')
+                # Buscamos os dados do formulário inicial ocultos
+                grupo_selecionado = request.form.get('dsGrupo')
+                evento_selecionado = request.form.get('dsTipoEvento')
 
                 # Dados do grupo econômico
                 rating_grupo = request.form.get('cdRatingGrupoProposto')
@@ -174,8 +174,13 @@ def solicitar_alcada_formulario():
                 emissores_payload = []
 
                 # Iteramos por cada emissor extraindo os dados
-                idx = 0
-                while f'emissores[{idx}][idEmissor]' in request.form:
+                emissores_indices = set()
+                for key in request.form.keys():
+                    if key.startswith('emissores['):
+                        idx = int(key.split('[')[1].split(']')[0])
+                        emissores_indices.add(idx)
+
+                for idx in sorted(list(emissores_indices)):
                     # Prefixo dos campos
                     prefixo = f'emissores[{idx}]'
 
@@ -189,6 +194,10 @@ def solicitar_alcada_formulario():
                     prazos = request.form.getlist(f'{prefixo}[prazos][]')
                     terceiros = request.form.getlist(f'{prefixo}[terceiros_proposto][]')
                     reservas_tecnicas = request.form.getlist(f'{prefixo}[rts_proposto][]')
+
+                    # Regra: Se não houver limites (prazos) nem rating preenchido, o emissor não é enviado ao backend
+                    if not prazos and not cd_rating_emissor:
+                        continue
 
                     linhas = []
 
@@ -234,7 +243,7 @@ def solicitar_alcada_formulario():
                     meta_payload = None
 
                     # Payload do limite meta
-                    if dt_vencimento_meta and meta_rows:
+                    if meta_rows:
                         meta_payload = {
                             'dtVencimento': dt_vencimento_meta,
                             'cdRating': cd_rating_meta,
@@ -251,8 +260,6 @@ def solicitar_alcada_formulario():
                         'linhas': linhas,
                         'meta': meta_payload
                     })
-
-                    idx += 1
             
                 # Payload final
                 payload = {

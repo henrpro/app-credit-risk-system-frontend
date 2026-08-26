@@ -322,25 +322,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const globalPrazosSet = new Set();
         const emissoresData = [];
 
-        let grandTotAtual = 0;
-        let grandTotProp = 0;
-        let grandTercAtual = 0;
-        let grandTercProp = 0;
-        let grandRtAtual = 0;
-        let grandRtProp = 0;
-
         emissorTables.forEach(table => {
-            // Soma as exposições máximas de cada emissor para o rodapé geral consolidado
-            grandTotAtual += parseFloat(table.dataset.maxTotalAtual || 0);
-            grandTotProp += parseFloat(table.dataset.maxTotalProp || 0);
-            grandTercAtual += parseFloat(table.dataset.maxTercAtual || 0);
-            grandTercProp += parseFloat(table.dataset.maxTercProp || 0);
-            grandRtAtual += parseFloat(table.dataset.maxRtAtual || 0);
-            grandRtProp += parseFloat(table.dataset.maxRtProp || 0);
-
+            const emissorIdx = table.dataset.emissorIndex;
             const rows = table.querySelectorAll('tbody tr.emissor-table-row');
             const emissorRowsData = [];
+            const emissorMetaRowsData = [];
 
+            // Extrai limites normais
             rows.forEach(row => {
                 const prazoInput = row.querySelector('.input-prazo');
                 const prazoStr = prazoInput ? prazoInput.value.trim() : '';
@@ -359,10 +347,29 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
             });
-
-            // Ordena os prazos do emissor crescente
             emissorRowsData.sort((a, b) => a.prazo - b.prazo);
-            emissoresData.push(emissorRowsData);
+
+            // Extrai limites meta
+            const metaData = metaDataByEmissor[emissorIdx];
+            if (metaData && metaData.rows) {
+                metaData.rows.forEach(r => {
+                    const prazoKey = parseInt(r.prazo, 10);
+                    if (!isNaN(prazoKey)) {
+                        globalPrazosSet.add(prazoKey);
+                        emissorMetaRowsData.push({
+                            prazo: prazoKey,
+                            tercProp: parseFloat(r.terceirosProposto) || 0,
+                            rtProp: parseFloat(r.rtProposto) || 0,
+                        });
+                    }
+                });
+                emissorMetaRowsData.sort((a, b) => a.prazo - b.prazo);
+            }
+
+            emissoresData.push({
+                normal: emissorRowsData,
+                meta: emissorMetaRowsData
+            });
         });
 
         const prazosOrdenados = Array.from(globalPrazosSet).sort((a, b) => a - b);
@@ -381,17 +388,44 @@ document.addEventListener('DOMContentLoaded', function () {
             prazosOrdenados.forEach(P => {
                 mapPrazos[P] = { totalAtual: 0, totalProp: 0, tercAtual: 0, tercProp: 0, rtAtual: 0, rtProp: 0 };
                 
-                emissoresData.forEach(emissorRows => {
-                    // Para cada emissor, se não existir o prazo exato, consideramos o valor do primeiro prazo maior ou igual (Cascata)
-                    const matchingRow = emissorRows.find(r => r.prazo >= P);
-                    if (matchingRow) {
-                        mapPrazos[P].tercAtual += matchingRow.tercAtual;
-                        mapPrazos[P].rtAtual += matchingRow.rtAtual;
-                        mapPrazos[P].tercProp += matchingRow.tercProp;
-                        mapPrazos[P].rtProp += matchingRow.rtProp;
-                        mapPrazos[P].totalAtual += (matchingRow.tercAtual + matchingRow.rtAtual);
-                        mapPrazos[P].totalProp += (matchingRow.tercProp + matchingRow.rtProp);
+                emissoresData.forEach(emissor => {
+                    let n_tercAtual = 0, n_rtAtual = 0, n_tercProp = 0, n_rtProp = 0;
+                    let m_tercProp = 0, m_rtProp = 0;
+
+                    // Cascata Limite Normal
+                    const normalRow = emissor.normal.find(r => r.prazo >= P);
+                    if (normalRow) {
+                        n_tercAtual = normalRow.tercAtual;
+                        n_rtAtual = normalRow.rtAtual;
+                        n_tercProp = normalRow.tercProp;
+                        n_rtProp = normalRow.rtProp;
                     }
+
+                    // Cascata Limite Meta
+                    const metaRow = emissor.meta.find(r => r.prazo >= P);
+                    if (metaRow) {
+                        m_tercProp = metaRow.tercProp;
+                        m_rtProp = metaRow.rtProp;
+                    }
+
+                    const n_totalProp = n_tercProp + n_rtProp;
+                    const m_totalProp = m_tercProp + m_rtProp;
+
+                    // Regra: Considera o maior Total Proposto (Normal vs Meta)
+                    let chosen_tercProp = n_tercProp;
+                    let chosen_rtProp = n_rtProp;
+
+                    if (m_totalProp > n_totalProp) {
+                        chosen_tercProp = m_tercProp;
+                        chosen_rtProp = m_rtProp;
+                    }
+
+                    mapPrazos[P].tercAtual += n_tercAtual;
+                    mapPrazos[P].rtAtual += n_rtAtual;
+                    mapPrazos[P].tercProp += chosen_tercProp;
+                    mapPrazos[P].rtProp += chosen_rtProp;
+                    mapPrazos[P].totalAtual += (n_tercAtual + n_rtAtual);
+                    mapPrazos[P].totalProp += (chosen_tercProp + chosen_rtProp);
                 });
                 
                 const item = mapPrazos[P];
@@ -515,7 +549,6 @@ document.addEventListener('DOMContentLoaded', function () {
         inputs.forEach(input => {
             input.addEventListener('input', function () {
                 updateMetaRowTotals(row);
-                recalculateMetaFooter();
             });
         });
 
@@ -527,7 +560,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (tbody && tbody.children.length === 0) {
                     tbody.appendChild(createMetaTableRow());
                 }
-                recalculateMetaFooter();
             });
         }
     }
@@ -538,34 +570,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const total = terc + rt;
         const span = row.querySelector('.total-meta-calc');
         if (span) span.textContent = formatNumber(total);
-    }
-
-    function recalculateMetaFooter() {
-        const modalTable = document.getElementById('tabelaModalLimiteMeta');
-        if (!modalTable) return;
-        const rows = modalTable.querySelectorAll('tbody tr');
-
-        let maxTotal = 0;
-        let maxTerc = 0;
-        let maxRt = 0;
-
-        rows.forEach(row => {
-            const terc = parseVal(row.querySelector('.input-terceiros-meta')?.value);
-            const rt = parseVal(row.querySelector('.input-rt-meta')?.value);
-            const total = terc + rt;
-
-            if (terc > maxTerc) maxTerc = terc;
-            if (rt > maxRt) maxRt = rt;
-            if (total > maxTotal) maxTotal = total;
-        });
-
-        const spanTot = modalTable.querySelector('.meta-sum-total');
-        const spanTerc = modalTable.querySelector('.meta-sum-terceiros');
-        const spanRt = modalTable.querySelector('.meta-sum-rt');
-
-        if (spanTot) spanTot.textContent = formatNumber(maxTotal);
-        if (spanTerc) spanTerc.textContent = formatNumber(maxTerc);
-        if (spanRt) spanRt.textContent = formatNumber(maxRt);
     }
 
     // Botão Adicionar Linha dentro do Modal
@@ -617,7 +621,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
 
-            recalculateMetaFooter();
             if (bsModal) bsModal.show();
         });
     });
@@ -629,6 +632,12 @@ document.addEventListener('DOMContentLoaded', function () {
             if (currentMetaEmissorIdx === null) return;
 
             const inputDtVenc = document.getElementById('metaDtVencimento');
+            if (inputDtVenc && !inputDtVenc.value.trim()) {
+                alert("A Data de Vencimento do Limite Meta é obrigatória.");
+                inputDtVenc.focus();
+                return;
+            }
+
             const selectRating = document.getElementById('metaSelectRating');
             const inputShare = document.getElementById('metaInputShare');
 
@@ -714,6 +723,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
 
+            recalculateAll(); // <--- Recalcula o grupo consolidado considerando os novos metas!
+            
             if (bsModal) bsModal.hide();
         });
     }

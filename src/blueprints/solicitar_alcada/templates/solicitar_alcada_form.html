@@ -212,8 +212,8 @@ Run-Off', 'Renovação com Upgrade de Rating + Run-Off', 'Downgrade de Rating + 
               <label class="indicator-field-label" for="ratingProp_{{ emissor_idx }}">Rating Proposto <span
                   class="text-danger">*</span></label>
               <select class="form-select form-select-sm select-indicator select-rating-proposto-emissor"
-                id="ratingProp_{{ emissor_idx }}" name="emissores[{{ emissor_idx }}][cdRatingProposto]" {% if
-                can_edit_rating %}required{% else %}disabled{% endif %}>
+                id="ratingProp_{{ emissor_idx }}" name="emissores[{{ emissor_idx }}][cdRatingProposto]" {% if not
+                can_edit_rating %}disabled{% endif %}>
                 <option value="">Selecione...</option>
                 {% for r in ratings_cadastrados %}
                 {% set r_cod = r.cdRating if r.cdRating is defined else r %}
@@ -387,15 +387,6 @@ Run-Off', 'Renovação com Upgrade de Rating + Run-Off', 'Downgrade de Rating + 
             <tbody>
               <!-- Linhas preenchidas dinamicamente via JS -->
             </tbody>
-            <tfoot>
-              <tr class="table-footer-total">
-                <td class="th-center">Total</td>
-                <td class="meta-sum-total text-end cell-val-proposto">0,00</td>
-                <td class="meta-sum-terceiros text-end cell-val-proposto">0,00</td>
-                <td class="meta-sum-rt text-end cell-val-proposto">0,00</td>
-                <td></td>
-              </tr>
-            </tfoot>
           </table>
         </div>
       </div>
