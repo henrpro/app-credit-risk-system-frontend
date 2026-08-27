@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+
+{% block title %}CRS - Mapeamento de Emissor de Consumo{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('mapeamentos.static', filename='css/mapeamentos.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- Cabeçalho com Título e Botão de Ação -->
+<div class="page-header-container mb-4">
+  <div class="page-header-left">
+    <a href="{{ url_for('mapeamentos.mapeamentos') }}" class="btn-back-nav">
+      <i class="bi bi-arrow-left"></i> Voltar
+    </a>
+    <div class="pagetitle mb-0">
+      <h1 class="pagetitle-main">Mapeamento - Emissor de Consumo</h1>
+    </div>
+  </div>
+  <button type="button" class="btn-add-item" id="btnAbrirModalNovoAtivo">
+    <i class="bi bi-plus-circle"></i>
+    <span>Adicionar Mapeamento</span>
+  </button>
+</div>
+
+<!-- Tabs de Navegação -->
+<ul class="nav nav-tabs custom-nav-tabs mb-4" id="ativosTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="atuais-tab" data-bs-toggle="tab" data-bs-target="#tab-atuais" type="button" role="tab" aria-controls="tab-atuais" aria-selected="true">
+      <i class="bi bi-table me-2"></i> Mapeamentos Atuais
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="pendentes-tab" data-bs-toggle="tab" data-bs-target="#tab-pendentes" type="button" role="tab" aria-controls="tab-pendentes" aria-selected="false">
+      <i class="bi bi-clock-history me-2"></i> Mapeamentos Pendentes
+      {% if pendentes and pendentes | length > 0 %}
+        <span class="badge bg-warning text-dark ms-2" id="badgeCountPendentes">{{ pendentes | length }}</span>
+      {% else %}
+        <span class="badge bg-warning text-dark ms-2 d-none" id="badgeCountPendentes">0</span>
+      {% endif %}
+    </button>
+  </li>
+</ul>
+
+<!-- Conteúdo das Tabs -->
+<div class="tab-content" id="ativosTabsContent">
+  
+  <!-- TAB 1: MAPEAMENTOS ATUAIS -->
+  <div class="tab-pane fade show active" id="tab-atuais" role="tabpanel" aria-labelledby="atuais-tab">
+    <div class="table-card">
+      <div class="table-header-tools">
+        <div class="search-input-wrapper">
+          <i class="bi bi-search"></i>
+          <input type="text" id="filtroAtivosTabela" class="form-control" placeholder="Buscar por ticker, emissor original ou emissor de consumo...">
+        </div>
+        <div class="count-badge">
+          <i class="bi bi-diagram-3 text-warning"></i>
+          <span id="contadorAtivos">{{ mapeamentos | length }}</span> ativo(s) mapeado(s)
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="custom-table" id="tabelaAtivos">
+          <thead>
+            <tr>
+              <th style="width: 22%;">Ticker / Ativo</th>
+              <th style="width: 28%;">Emissor Original</th>
+              <th style="width: 28%;">Emissor Consumo</th>
+              <th style="width: 10%;">% Consumo</th>
+              <th style="width: 12%; text-align: right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if mapeamentos and mapeamentos | length > 0 %}
+              {% for m in mapeamentos %}
+              <tr class="ativo-row" data-ticker="{{ m.cdTicker }}" data-emissor="{{ m.idEmissor }}" data-consumo="{{ m.idEmissorConsumo }}" data-percentual="{{ m.vlPcConsumo }}" data-nome-emissor="{{ m.dsEmissor }}" data-nome-consumo="{{ m.dsEmissorConsumo }}">
+                <td>
+                  <span class="badge-ticker">
+                    <i class="bi bi-tag-fill me-1"></i>{{ m.cdTicker }}
+                  </span>
+                </td>
+                <td>
+                  <span class="fw-semibold">{{ m.dsEmissor or 'N/A' }}</span>
+                </td>
+                <td>
+                  <span class="fw-semibold text-warning">{{ m.dsEmissorConsumo or 'N/A' }}</span>
+                </td>
+                <td>
+                  <span class="fw-bold">
+                    {% if m.vlPcConsumo is not none %}
+                      {% if m.vlPcConsumo <= 1.0 and m.vlPcConsumo > 0 %}
+                        {{ "%.2f"|format(m.vlPcConsumo * 100) }}%
+                      {% else %}
+                        {{ m.vlPcConsumo }}%
+                      {% endif %}
+                    {% else %}
+                      100%
+                    {% endif %}
+                  </span>
+                </td>
+                <td>
+                  <div class="table-actions-group">
+                    <button type="button" class="btn-action-edit btn-alterar-ativo" data-ticker="{{ m.cdTicker }}" data-emissor="{{ m.idEmissor }}" data-consumo="{{ m.idEmissorConsumo }}" data-percentual="{{ m.vlPcConsumo }}" title="Alterar Mapeamento">
+                      <i class="bi bi-pencil-square"></i>
+                      <span>Alterar</span>
+                    </button>
+                    <button type="button" class="btn-action-delete btn-excluir-ativo" data-ticker="{{ m.cdTicker }}" title="Excluir Mapeamento">
+                      <i class="bi bi-trash"></i>
+                      <span>Excluir</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr id="emptyTableRow">
+                <td colspan="5">
+                  <div class="empty-table-state">
+                    <i class="bi bi-diagram-3"></i>
+                    <h5>Nenhum ativo mapeado</h5>
+                    <p class="mb-0">Clique em "Adicionar Mapeamento" ou consulte os pendentes na aba ao lado.</p>
+                  </div>
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: MAPEAMENTOS PENDENTES -->
+  <div class="tab-pane fade" id="tab-pendentes" role="tabpanel" aria-labelledby="pendentes-tab">
+    <div class="table-card">
+      <div class="table-header-tools">
+        <div class="search-input-wrapper">
+          <i class="bi bi-search"></i>
+          <input type="text" id="filtroPendentesAtivosTabela" class="form-control" placeholder="Filtrar pendências...">
+        </div>
+        <div class="count-badge">
+          <i class="bi bi-exclamation-triangle text-warning"></i>
+          <span id="contadorPendentesAtivos">{{ pendentes | length if pendentes else 0 }}</span> pendência(s) encontrada(s)
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="custom-table" id="tabelaPendentesAtivos">
+          <thead>
+            <tr>
+              <th style="width: 15%;">#</th>
+              <th style="width: 65%;">Ticker / Ativo Sem Mapeamento</th>
+              <th style="width: 20%; text-align: right;">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="tbodyPendentesAtivos">
+            {% if pendentes and pendentes | length > 0 %}
+              {% for p in pendentes %}
+              <tr class="pendente-ativo-row" data-ticker="{{ p.cdTicker }}">
+                <td><span class="text-muted fw-semibold">#{{ loop.index }}</span></td>
+                <td>
+                  <span class="badge-ticker">
+                    <i class="bi bi-tag-fill me-1"></i>{{ p.cdTicker }}
+                  </span>
+                </td>
+                <td>
+                  <div class="table-actions-group">
+                    <button type="button" class="btn-action-map btn-mapear-pendente-ativo" data-ticker="{{ p.cdTicker }}">
+                      <i class="bi bi-plus-circle-fill"></i>
+                      <span>Mapear</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="3">
+                  <div class="empty-table-state">
+                    <i class="bi bi-check-circle text-success"></i>
+                    <h5>Nenhum ativo pendente de mapeamento</h5>
+                    <p class="mb-0">Todos os ativos encontrados na posição já estão devidamente mapeados.</p>
+                  </div>
+                </td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal Cadastrar / Alterar Ativo -->
+<div class="modal fade" id="modalAtivo" tabindex="-1" aria-labelledby="modalAtivoTitle" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content modal-content-custom">
+      <div class="modal-header modal-header-custom">
+        <h5 class="modal-title-custom" id="modalAtivoTitle">
+          <i class="bi bi-diagram-3" id="modalHeaderIcon" style="color: var(--color-accent);"></i>
+          <span id="modalHeaderTitleText">Adicionar Mapeamento de Ativo</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <form id="formAtivo" method="POST" action="{{ url_for('mapeamentos.salvar_ativo') }}" class="needs-validation" novalidate>
+        <div class="modal-body p-4">
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="inputCdTicker" class="form-label fw-semibold">
+                Ticker / Código do Ativo <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control text-uppercase" id="inputCdTicker" name="cdTicker" placeholder="Ex: PETR4, LF123" required>
+              <div class="invalid-feedback">
+                Por favor, informe o ticker/ativo.
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label for="inputVlPcConsumo" class="form-label fw-semibold">
+                % Consumo (0.0 a 1.0 ou até 100) <span class="text-danger">*</span>
+              </label>
+              <input type="number" step="0.01" min="0" max="100" class="form-control" id="inputVlPcConsumo" name="vlPcConsumo" value="1.0" placeholder="Ex: 1.0 ou 100" required>
+              <div class="invalid-feedback">
+                Por favor, informe o percentual de consumo.
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="selectIdEmissor" class="form-label fw-semibold">
+                Emissor Original <span class="text-danger">*</span>
+              </label>
+              <select class="form-select" id="selectIdEmissor" name="idEmissor" required>
+                <option value="" disabled selected>Selecione o emissor...</option>
+                {% for e in emissores_cadastrados %}
+                  <option value="{{ e.idEmissor }}">{{ e.dsEmissor }}</option>
+                {% endfor %}
+              </select>
+              <div class="invalid-feedback">
+                Por favor, selecione o emissor original.
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label for="selectIdEmissorConsumo" class="form-label fw-semibold">
+                Emissor de Consumo (Holding / Destino) <span class="text-danger">*</span>
+              </label>
+              <select class="form-select" id="selectIdEmissorConsumo" name="idEmissorConsumo" required>
+                <option value="" disabled selected>Selecione o emissor de consumo...</option>
+                {% for e in emissores_cadastrados %}
+                  <option value="{{ e.idEmissor }}">{{ e.dsEmissor }}</option>
+                {% endfor %}
+              </select>
+              <div class="invalid-feedback">
+                Por favor, selecione o emissor de consumo.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer modal-footer-custom">
+          <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn-add-item px-4" id="btnSalvarAtivo">
+            <i class="bi bi-check-circle me-1"></i>
+            <span id="btnSalvarAtivoText">Salvar Mapeamento</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmar Exclusão -->
+<div class="modal fade" id="modalConfirmarExclusaoAtivo" tabindex="-1" aria-labelledby="modalExclusaoTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modal-content-custom">
+      <div class="modal-header modal-header-custom">
+        <h5 class="modal-title-custom text-danger" id="modalExclusaoTitle">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i> Confirmar Exclusão
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body p-4 text-center">
+        <div class="mb-3">
+          <i class="bi bi-trash text-danger" style="font-size: 48px;"></i>
+        </div>
+        <h6 class="mb-2 fw-semibold">Deseja realmente remover este mapeamento?</h6>
+        <p class="text-muted mb-0">
+          O mapeamento do ativo <strong id="deleteTickerDisplay" class="text-warning"></strong> será removido.
+        </p>
+      </div>
+      <form id="formDeletarAtivo" method="POST" action="{{ url_for('mapeamentos.deletar_ativo') }}">
+        <input type="hidden" id="inputDeleteCdTicker" name="cdTicker" value="">
+        <div class="modal-footer modal-footer-custom justify-content-center">
+          <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger px-4 fw-semibold">
+            <i class="bi bi-trash me-1"></i> Confirmar Exclusão
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('mapeamentos.static', filename='js/mapeamentos.js') }}"></script>
+{% endblock %}

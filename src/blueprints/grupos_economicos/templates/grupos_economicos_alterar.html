@@ -76,9 +76,9 @@
           </button>
         </div>
 
-        <!-- Linha 1: CNPJ e Nome do Emissor -->
+        <!-- Linha 1: CNPJ (3), Nome do Emissor (6), Setor (3) -->
         <div class="row g-3 mb-3">
-          <div class="col-md-6">
+          <div class="col-md-3">
             <label class="form-label">CNPJ</label>
             <input type="text" class="form-control cnpj-mask" name="cnpjEmissor[]" value="{{ e.cdCnpj }}" placeholder="00.000.000/0000-00" maxlength="18">
           </div>
@@ -89,10 +89,21 @@
               Por favor, preencha o nome do emissor.
             </div>
           </div>
+          <div class="col-md-3">
+            <label class="form-label">Setor <span class="text-danger">*</span></label>
+            <select class="form-select select-setor" name="setorEmissor[]" required>
+              <option value="">Selecione o setor...</option>
+              {% for s in setores %}
+                {% set s_val = s.dsSetor if s is mapping and s.dsSetor is defined else (s.nome if s is mapping and s.nome is defined else s) %}
+                <option value="{{ s_val }}" {% if e.dsSetor == s_val %}selected{% endif %}>{{ s_val }}</option>
+              {% endfor %}
+            </select>
+            <div class="invalid-feedback">Selecione o setor.</div>
+          </div>
         </div>
 
         <!-- Linha 2: É holding?, Consome da Holding?, Holding de Consumo -->
-        <div class="row g-3 mb-3">
+        <div class="row g-3 mb-4">
           <div class="col-md-4">
             <label class="form-label">É holding? <span class="text-danger">*</span></label>
             <select class="form-select select-is-holding" name="isHolding[]" required>
@@ -124,32 +135,7 @@
           </div>
         </div>
 
-        <!-- Linha 3: Setor e Subsetor -->
-        <div class="row g-3 mb-4">
-          <div class="col-md-6">
-            <label class="form-label">Setor <span class="text-danger">*</span></label>
-            <select class="form-select select-setor" name="setorEmissor[]" required>
-              <option value="">Selecione o setor...</option>
-              {% for s in setores %}
-                {% set s_val = s.dsSetor if s is mapping and s.dsSetor is defined else (s.nome if s is mapping and s.nome is defined else s) %}
-                <option value="{{ s_val }}" {% if e.dsSetor == s_val %}selected{% endif %}>{{ s_val }}</option>
-              {% endfor %}
-            </select>
-            <div class="invalid-feedback">Selecione o setor.</div>
-          </div>
-          <div class="col-md-6">
-            <label class="form-label">Subsetor</label>
-            <select class="form-select select-subsetor" name="subsetorEmissor[]">
-              <option value="">Selecione o subsetor...</option>
-              {% for sub in subsetores %}
-                {% set sub_val = sub.dsSubsetor if sub is mapping and sub.dsSubsetor is defined else (sub.nome if sub is mapping and sub.nome is defined else sub) %}
-                <option value="{{ sub_val }}" {% if e.dsSubsetor == sub_val %}selected{% endif %}>{{ sub_val }}</option>
-              {% endfor %}
-            </select>
-          </div>
-        </div>
-
-        <!-- Linha 4: Dois botões centralizados -->
+        <!-- Linha 3: Dois botões centralizados -->
         <div class="row mb-3">
           <div class="col-12 d-flex justify-content-center gap-3 flex-wrap">
             <button type="button" class="btn-associar btn-associar-oc3">
@@ -236,9 +222,9 @@
       </button>
     </div>
 
-    <!-- Linha 1: CNPJ e Nome do Emissor -->
+    <!-- Linha 1: CNPJ (3), Nome do Emissor (6), Setor (3) -->
     <div class="row g-3 mb-3">
-      <div class="col-md-6">
+      <div class="col-md-3">
         <label class="form-label">CNPJ</label>
         <input type="text" class="form-control cnpj-mask" name="cnpjEmissor[]" placeholder="00.000.000/0000-00" maxlength="18">
       </div>
@@ -249,10 +235,24 @@
           Por favor, preencha o nome do emissor.
         </div>
       </div>
+      <div class="col-md-3">
+        <label class="form-label">Setor <span class="text-danger">*</span></label>
+        <select class="form-select select-setor" name="setorEmissor[]" required>
+          <option value="">Selecione o setor...</option>
+          {% for s in setores %}
+            {% if s is mapping %}
+              <option value="{{ s.id or s.cdSetor or s.cd_setor or s.dsSetor or s.nome or s }}">{{ s.dsSetor or s.ds_setor or s.nome or s.descricao or s }}</option>
+            {% else %}
+              <option value="{{ s }}">{{ s }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+        <div class="invalid-feedback">Selecione o setor.</div>
+      </div>
     </div>
 
     <!-- Linha 2: É holding?, Consome da Holding?, Holding de Consumo -->
-    <div class="row g-3 mb-3">
+    <div class="row g-3 mb-4">
       <div class="col-md-4">
         <label class="form-label">É holding? <span class="text-danger">*</span></label>
         <select class="form-select select-is-holding" name="isHolding[]" required>
@@ -279,38 +279,7 @@
       </div>
     </div>
 
-    <!-- Linha 3: Setor e Subsetor -->
-    <div class="row g-3 mb-4">
-      <div class="col-md-6">
-        <label class="form-label">Setor <span class="text-danger">*</span></label>
-        <select class="form-select select-setor" name="setorEmissor[]" required>
-          <option value="">Selecione o setor...</option>
-          {% for s in setores %}
-            {% if s is mapping %}
-              <option value="{{ s.id or s.cdSetor or s.cd_setor or s.dsSetor or s.nome or s }}">{{ s.dsSetor or s.ds_setor or s.nome or s.descricao or s }}</option>
-            {% else %}
-              <option value="{{ s }}">{{ s }}</option>
-            {% endif %}
-          {% endfor %}
-        </select>
-        <div class="invalid-feedback">Selecione o setor.</div>
-      </div>
-      <div class="col-md-6">
-        <label class="form-label">Subsetor</label>
-        <select class="form-select select-subsetor" name="subsetorEmissor[]">
-          <option value="">Selecione o subsetor...</option>
-          {% for sub in subsetores %}
-            {% if sub is mapping %}
-              <option value="{{ sub.id or sub.cdSubsetor or sub.cd_subsetor or sub.dsSubsetor or sub.nome or sub }}">{{ sub.dsSubsetor or sub.ds_subsetor or sub.nome or sub.descricao or sub }}</option>
-            {% else %}
-              <option value="{{ sub }}">{{ sub }}</option>
-            {% endif %}
-          {% endfor %}
-        </select>
-      </div>
-    </div>
-
-    <!-- Linha 4: Dois botões centralizados -->
+    <!-- Linha 3: Dois botões centralizados -->
     <div class="row mb-3">
       <div class="col-12 d-flex justify-content-center gap-3 flex-wrap">
         <button type="button" class="btn-associar btn-associar-oc3">

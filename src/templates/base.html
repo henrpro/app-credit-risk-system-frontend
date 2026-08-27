@@ -92,6 +92,7 @@
                 </a>
             </li>
 
+            {% if not current_user.is_authenticated or current_user.grupo != 'EXTERNO' %}
             <li class="nav-heading">Solicitações e Cadastros</li>
             <li class="nav-item">
                 <a class="nav-link collapsed" href="{{ url_for('grupos_economicos.grupos_economicos') }}">
@@ -111,14 +112,17 @@
                     <span>Consultar Solicitação</span>
                 </a>
             </li>
+            {% endif %}
 
             <li class="nav-heading">Consultar</li>
+            {% if not current_user.is_authenticated or current_user.grupo != 'EXTERNO' %}
             <li class="nav-item">
                 <a class="nav-link collapsed" href="{{ url_for('consultar_limite.consultar_limite') }}">
                     <i class="bi bi-search"></i>
                     <span>Consultar Limite</span>
                 </a>
             </li>
+            {% endif %}
             <li class="nav-item">
                 <a class="nav-link collapsed" href="{{ url_for('historico_casos.historico_casos') }}">
                     <i class="bi bi-clock-history"></i>

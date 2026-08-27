@@ -2,14 +2,41 @@
 
 {% block title %}CRS - Mapeamentos{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('mapeamentos.static', filename='css/mapeamentos.css') }}">
-{% endblock %}
-
 {% block content %}
+
 <div class="pagetitle mb-4">
   <h1 class="pagetitle-main">Mapeamentos</h1>
 </div>
+
+<div class="row justify-content-center mt-4">
+  <div class="col-12 col-xl-10">
+    <div class="action-card text-center">
+      <h3 class="action-card-title">O que você deseja fazer?</h3>
+      
+      <div class="action-buttons-group">
+        <a href="{{ url_for('mapeamentos.emissor_consumo') }}" class="btn-action-card">
+          <i class="bi bi-diagram-3"></i>
+          <span>Emissor de Consumo</span>
+        </a>
+
+        <a href="{{ url_for('mapeamentos.produtos_oc3') }}" class="btn-action-card">
+          <i class="bi bi-box-seam"></i>
+          <span>Produtos OC3</span>
+        </a>
+
+        <a href="{{ url_for('mapeamentos.novos_managers') }}" class="btn-action-card">
+          <i class="bi bi-person-badge"></i>
+          <span>Novos Managers</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('mapeamentos.static', filename='css/mapeamentos.css') }}">
 {% endblock %}
 
 {% block extra_js %}

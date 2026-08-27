@@ -1,14 +1,240 @@
 {% extends 'base.html' %}
 
-{% block title %}CRS - Consulta de Solicitações{% endblock %}
+{% block title %}CRS - Consultar Solicitações{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('consulta_solicitacoes.static', filename='css/consulta_solicitacoes.css') }}">
 {% endblock %}
 
 {% block content %}
-<div class="pagetitle mb-4">
-  <h1 class="pagetitle-main">Consulta de Solicitações</h1>
+<!-- Cabeçalho da Página -->
+<div class="page-header-container mb-4">
+  <div class="pagetitle mb-0">
+    <h1 class="pagetitle-main">Consultar Solicitações</h1>
+  </div>
+</div>
+
+<!-- Barra de Ferramentas / Filtros -->
+<div class="solicitacoes-tools-card">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div class="search-input-wrapper">
+      <i class="bi bi-search"></i>
+      <input type="text" id="filtroSolicitacoes" class="form-control" placeholder="Buscar por grupo, solicitante, evento ou ID...">
+    </div>
+    
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <div class="count-badge-solicitacoes">
+        <i class="bi bi-inbox-fill" style="color: var(--color-accent);"></i>
+        <span id="contadorSolicitacoes">{{ solicitacoes | length }}</span> solicitação(ões) pendente(s)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lista de Solicitações -->
+<div id="solicitacoesListaContainer">
+  {% if solicitacoes and solicitacoes | length > 0 %}
+    {% for s in solicitacoes %}
+    <div class="solicitacao-card" 
+         data-id="{{ s.idSolicitacao }}" 
+         data-grupo="{{ s.dsGrupo }}" 
+         data-nome="{{ s.dsNome }}" 
+         data-profile="{{ s.dsProfile }}"
+         data-evento="{{ s.dsTipoEvento }}" 
+         data-status="{{ s.dsStatus }}">
+      
+      <!-- Cabeçalho do Card: Título (Grupo Econômico) e Subtítulo (Evento) -->
+      <div class="solicitacao-card-header">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+          <div>
+            <h4 class="solicitacao-grupo-title mb-1">
+              {{ s.dsGrupo or 'Grupo Não Informado' }}
+            </h4>
+            <div class="solicitacao-evento-subtitle">
+              {{ s.dsTipoEvento or 'Evento Não Informado' }}
+            </div>
+          </div>
+          {% if s.dsAlcada %}
+          <span class="badge-alcada">
+            <i class="bi bi-shield-check"></i> Alçada: {{ s.dsAlcada }}
+          </span>
+          {% endif %}
+        </div>
+
+        <!-- Linha inferior: ID, Data, Solicitante e Mesa lado a lado -->
+        <div class="row g-3 w-100 align-items-center m-0">
+          <div class="col-12 col-sm-6 col-lg-3 px-2">
+            <div class="header-info-item">
+              <span class="info-label">ID:</span>
+              <span class="info-value">#{{ s.idSolicitacao }}</span>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-3 px-2">
+            <div class="header-info-item">
+              <span class="info-label">Data:</span>
+              <span class="info-value">{{ s.dtSolicitacao or 'Não informada' }}</span>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-3 px-2">
+            <div class="header-info-item">
+              <span class="info-label">Solicitante:</span>
+              <span class="info-value">{{ s.dsNome or 'Não informado' }}</span>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-3 px-2">
+            <div class="header-info-item">
+              <span class="info-label">Mesa:</span>
+              <span class="info-value">{{ s.dsProfile or 'Não informada' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Linha de Status / Stepper Horizontal Progress Bar -->
+      <div class="status-tracker-container">
+        <div class="status-tracker-wrapper">
+          <!-- Linha de fundo cinza -->
+          <div class="tracker-progress-track"></div>
+          
+          <!-- Linha de progresso preenchida dinamicamente -->
+          {% set progress_width = 0 %}
+          {% if s.dsStatus == 'Alçada Pendente' %}
+            {% set progress_width = 33.33 %}
+          {% elif s.dsStatus == 'Em Discussão' %}
+            {% set progress_width = 66.66 %}
+          {% elif s.dsStatus == 'Aprovação Pendente' %}
+            {% set progress_width = 100 %}
+          {% endif %}
+          <div class="tracker-progress-bar" style="width: {{ progress_width }}%;"></div>
+
+          <!-- Step 1: Enviado -->
+          <div class="tracker-step {% if s.dsStatus in ['Alçada Pendente', 'Em Discussão', 'Aprovação Pendente'] %}completed{% else %}active{% endif %}">
+            <div class="tracker-node">
+              <i class="bi bi-send-check-fill"></i>
+            </div>
+            <span class="tracker-label">Enviado</span>
+          </div>
+
+          <!-- Step 2: Alçada Pendente -->
+          <div class="tracker-step {% if s.dsStatus in ['Em Discussão', 'Aprovação Pendente'] %}completed{% elif s.dsStatus == 'Alçada Pendente' %}active{% endif %}">
+            <div class="tracker-node">
+              <i class="bi bi-hourglass-split"></i>
+            </div>
+            <span class="tracker-label">Alçada Pendente</span>
+          </div>
+
+          <!-- Step 3: Em Discussão -->
+          <div class="tracker-step {% if s.dsStatus == 'Aprovação Pendente' %}completed{% elif s.dsStatus == 'Em Discussão' %}active{% endif %}">
+            <div class="tracker-node">
+              <i class="bi bi-chat-left-text-fill"></i>
+            </div>
+            <span class="tracker-label">Em Discussão</span>
+          </div>
+
+          <!-- Step 4: Aprovação Pendente -->
+          <div class="tracker-step {% if s.dsStatus == 'Aprovação Pendente' %}active completed{% endif %}">
+            <div class="tracker-node">
+              <i class="bi bi-shield-check"></i>
+            </div>
+            <span class="tracker-label">Aprovação Pendente</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Barra de Ações da Solicitação -->
+      <div class="solicitacao-actions-bar">
+        <!-- Cancelar Solicitação -->
+        <button type="button" class="btn-solicitacao-cancel btn-abrir-cancelamento" data-id="{{ s.idSolicitacao }}" data-grupo="{{ s.dsGrupo }}">
+          <i class="bi bi-x-circle me-1"></i> Cancelar Solicitação
+        </button>
+
+        <!-- Enviar Para Aprovação (apenas se status for 'Em Discussão') -->
+        {% if s.dsStatus == 'Em Discussão' %}
+        <button type="button" class="btn-solicitacao-approve btn-abrir-aprovacao" data-id="{{ s.idSolicitacao }}" data-grupo="{{ s.dsGrupo }}">
+          <i class="bi bi-arrow-up-right-circle me-1"></i> Enviar Para Aprovação
+        </button>
+        {% endif %}
+
+        <!-- Editar Solicitação -->
+        <a href="{{ url_for('solicitar_alcada.solicitar_alcada_formulario', grupo_selecionado=s.dsGrupo, evento_selecionado=s.dsTipoEvento, idSolicitacao=s.idSolicitacao) }}" class="btn-solicitacao-edit">
+          <i class="bi bi-pencil-square me-1"></i> Editar Solicitação
+        </a>
+      </div>
+
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="empty-solicitacoes-card">
+      <i class="bi bi-inbox empty-solicitacoes-icon"></i>
+      <h4>Nenhuma solicitação pendente</h4>
+      <p class="mb-3">Todas as solicitações de alçada foram processadas ou não há solicitações registradas no momento.</p>
+      <a href="{{ url_for('solicitar_alcada.solicitar_alcada') }}" class="btn-nova-solicitacao">
+        <i class="bi bi-plus-lg"></i> Nova Solicitação
+      </a>
+    </div>
+  {% endif %}
+</div>
+
+<div class="modal fade" id="modalConfirmarAprovacao" tabindex="-1" aria-labelledby="modalAprovacaoTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modal-content-custom">
+      <div class="modal-header modal-header-custom">
+        <h5 class="modal-title-custom" id="modalAprovacaoTitle" style="color: var(--color-accent);">
+          <i class="bi bi-arrow-up-right-circle me-2"></i> Enviar Para Aprovação
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body p-4 text-center">
+        <div class="mb-3">
+          <i class="bi bi-send-check text-warning" style="font-size: 48px;"></i>
+        </div>
+        <h6 class="mb-2 fw-semibold">Deseja enviar esta solicitação para aprovação?</h6>
+        <p class="text-muted mb-0">
+          A solicitação <strong id="aprovacaoIdDisplay" class="text-warning"></strong> do grupo <strong id="aprovacaoGrupoDisplay"></strong> avançará para o status <strong>Aprovação Pendente</strong>.
+        </p>
+      </div>
+      <form id="formEnviarAprovacao" method="POST" action="{{ url_for('consulta_solicitacoes.enviar_para_aprovacao') }}">
+        <input type="hidden" id="inputAprovacaoIdSolicitacao" name="idSolicitacao" value="">
+        <div class="modal-footer modal-footer-custom justify-content-center">
+          <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn-solicitacao-approve px-4">
+            <i class="bi bi-check-circle me-1"></i> Confirmar Envio
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalConfirmarCancelamento" tabindex="-1" aria-labelledby="modalCancelamentoTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modal-content-custom">
+      <div class="modal-header modal-header-custom">
+        <h5 class="modal-title-custom text-danger" id="modalCancelamentoTitle">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i> Cancelar Solicitação
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body p-4 text-center">
+        <div class="mb-3">
+          <i class="bi bi-x-circle text-danger" style="font-size: 48px;"></i>
+        </div>
+        <h6 class="mb-2 fw-semibold">Deseja realmente cancelar esta solicitação?</h6>
+        <p class="text-muted mb-0">
+          A solicitação <strong id="cancelarIdDisplay" class="text-danger"></strong> do grupo <strong id="cancelarGrupoDisplay"></strong> será cancelada.
+        </p>
+      </div>
+      <form id="formCancelarSolicitacao" method="POST" action="{{ url_for('consulta_solicitacoes.cancelar_solicitacao') }}">
+        <input type="hidden" id="inputCancelarIdSolicitacao" name="idSolicitacao" value="">
+        <div class="modal-footer modal-footer-custom justify-content-center">
+          <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Voltar</button>
+          <button type="submit" class="btn btn-danger px-4 fw-semibold">
+            <i class="bi bi-x-circle me-1"></i> Confirmar Cancelamento
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}
 

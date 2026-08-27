@@ -36,7 +36,6 @@ def criar_grupo_economico():
             consome_holdings = request.form.getlist('consomeHolding[]')
             holdings_consumo = request.form.getlist('holdingConsumo[]')
             setores_list = request.form.getlist('setorEmissor[]')
-            subsetores_list = request.form.getlist('subsetorEmissor[]')
 
             emissores = []
 
@@ -62,9 +61,8 @@ def criar_grupo_economico():
                     'icConsomeHolding': int(consome_holdings[i] == 'sim'),
                     'dsEmissorHoldingConsumo': holding_consumo if (i < len(consome_holdings) and consome_holdings[i] == 'sim') else None,
 
-                    # Buscamos o setor e subsetor cadastrados
+                    # Buscamos o setor cadastrado
                     'dsSetor': setores_list[i].strip() if i < len(setores_list) and setores_list[i] else None, 
-                    'dsSubsetor': subsetores_list[i].strip() if i < len(subsetores_list) and subsetores_list[i] else None, 
 
                     # Montamos a lista de emissores OC3 e CRIMS
                     'cdEmissoresOC3': request.form.getlist( 
@@ -92,13 +90,11 @@ def criar_grupo_economico():
     else:
         try:
             setores = APIGruposEconomicosService.obtem_setores_cadastrados()
-            subsetores = APIGruposEconomicosService.obtem_subsetores_cadastrados()
             return render_template(
                 'grupos_economicos_criar.html',
                 username=current_user.id,
                 grupo=getattr(current_user, 'grupo', ''),
-                setores=setores,
-                subsetores=subsetores
+                setores=setores
             )
         except Exception as e:
             return redirect(url_for('grupos_economicos.grupos_economicos'))
@@ -155,7 +151,6 @@ def consultar_grupo_economico():
                 papeis = item.get('cdAtivosConsumos') if isinstance(item.get('cdAtivosConsumos'), dict) else {}
 
                 setor = str(item.get('dsSetor') or '').strip()
-                subsetor = str(item.get('dsSubsetor') or '').strip()
                 cnpj_raw = str(item.get('cdCnpj') or '').strip()
 
                 emissores.append({
@@ -165,7 +160,6 @@ def consultar_grupo_economico():
                     'is_holding': bool(ic_holding),
                     'parent_id': id_holding if id_holding != 0 else None,
                     'setor': 'N/A' if setor.lower() in ['nan', 'none', 'null', ''] else setor,
-                    'subsetor': 'N/A' if subsetor.lower() in ['nan', 'none', 'null', ''] else subsetor,
                     'oc3': oc3,
                     'crims': crims,
                     'papeis': papeis
@@ -242,7 +236,6 @@ def alterar_grupo_economico():
     # Variáveis importantes para a rota
     grupos_cadastrados = APIGruposEconomicosService.get_grupos_economicos_cadastrados()
     setores = APIGruposEconomicosService.obtem_setores_cadastrados()
-    subsetores = APIGruposEconomicosService.obtem_subsetores_cadastrados()
 
     grupo_selecionado = None
     dados_grupo = None
@@ -269,7 +262,6 @@ def alterar_grupo_economico():
                     id_holding = item.get('idEmissorHoldingConsumo')
                     cnpj_raw = str(item.get('cdCnpj') or '').strip()
                     setor_raw = str(item.get('dsSetor') or '').strip()
-                    subsetor_raw = str(item.get('dsSubsetor') or '').strip()
 
                     ic_holding_raw = item.get('icHolding')
                     is_holding = bool(ic_holding_raw) and str(ic_holding_raw).lower() not in ['0', 'nao', 'false', 'none', 'null', 'nan']
@@ -291,9 +283,8 @@ def alterar_grupo_economico():
                         'icConsomeHolding': 'sim' if is_consome else 'nao',
                         'idEmissorHoldingConsumo': id_holding_clean,
 
-                        # Buscamos o setor e subsetor cadastrados
+                        # Buscamos o setor cadastrado
                         'dsSetor': '' if setor_raw.lower() in ['nan', 'none', 'null', ''] else setor_raw,
-                        'dsSubsetor': '' if subsetor_raw.lower() in ['nan', 'none', 'null', ''] else subsetor_raw,
 
                         # Montamos a lista de emissores OC3 e CRIMS
                         'cdEmissoresOC3': item.get('cdEmissoresOC3') if isinstance(item.get('cdEmissoresOC3'), list) else [],
@@ -324,7 +315,6 @@ def alterar_grupo_economico():
                 consome_holdings = request.form.getlist('consomeHolding[]')
                 holdings_consumo = request.form.getlist('holdingConsumo[]')
                 setores_list = request.form.getlist('setorEmissor[]')
-                subsetores_list = request.form.getlist('subsetorEmissor[]')
 
                 # Mapeamento de nome -> id caso algum emissor holding tenha vindo como nome
                 nome_to_id = {
@@ -368,9 +358,8 @@ def alterar_grupo_economico():
                         'icConsomeHolding': int(consome_holdings[i] == 'sim'),
                         'idEmissorHoldingConsumo': holding_consumo if (i < len(consome_holdings) and consome_holdings[i] == 'sim') else None,
 
-                        # Buscamos o setor e subsetor cadastrados
+                        # Buscamos o setor cadastrado
                         'dsSetor': setores_list[i].strip() if i < len(setores_list) and setores_list[i] else None,
-                        'dsSubsetor': subsetores_list[i].strip() if i < len(subsetores_list) and subsetores_list[i] else None,
 
                         # Montamos a lista de emissores OC3 e CRIMS
                         'cdEmissoresOC3': request.form.getlist(
@@ -405,8 +394,7 @@ def alterar_grupo_economico():
         id_grupo=id_grupo,
         dados_grupo=dados_grupo,
         holdings=holdings,
-        setores=setores,
-        subsetores=subsetores
+        setores=setores
     )
 
 # ______________________________ Deletar Grupo ______________________________
@@ -419,11 +407,6 @@ def deletar_grupo_economico():
         # Começamos buscando o id grupo
         ds_grupo = request.form.get('dsGrupo')
         id_grupo = request.form.get('idGrupo')
-
-        # Se o id do grupo não for informado, raise exception
-        if not id_grupo:
-            flash("Nome do grupo econômico não informado para exclusão.", "error")
-            return redirect(url_for('grupos_economicos.alterar_grupo_economico'))
 
         # Montamos o payload e chamamos o backend
         payload = {'idGrupo': int(id_grupo)}

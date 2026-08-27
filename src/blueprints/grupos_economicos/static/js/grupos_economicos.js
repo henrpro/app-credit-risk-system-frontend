@@ -639,7 +639,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const nome = button.getAttribute('data-nome') || '';
             const cnpj = button.getAttribute('data-cnpj') || 'N/A';
             const setor = button.getAttribute('data-setor') || 'N/A';
-            const subsetor = button.getAttribute('data-subsetor') || 'N/A';
             const oc3 = button.getAttribute('data-oc3') || 'N/A';
             const crims = button.getAttribute('data-crims') || 'N/A';
             let papeis = {};
@@ -667,9 +666,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const modalSetor = document.getElementById('modalEmissorSetor');
             if (modalSetor) modalSetor.textContent = cleanVal(setor);
-
-            const modalSubsetor = document.getElementById('modalEmissorSubsetor');
-            if (modalSubsetor) modalSubsetor.textContent = cleanVal(subsetor);
 
             const modalOC3 = document.getElementById('modalEmissorOC3');
             if (modalOC3) modalOC3.textContent = cleanVal(oc3);

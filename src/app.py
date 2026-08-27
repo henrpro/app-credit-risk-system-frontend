@@ -1,5 +1,5 @@
 # Importações do projeto
-from blueprints.consulta_solicitacoes.routes import consulta_solicitacoes_blueprint
+from blueprints.consultar_solicitacao.routes import consulta_solicitacoes_blueprint
 from blueprints.gestao_de_usuarios.routes import gestao_de_usuarios_blueprint
 from blueprints.alcadas_pendentes.routes import alcadas_pendentes_blueprint
 from blueprints.grupos_economicos.routes import grupos_economicos_blueprint

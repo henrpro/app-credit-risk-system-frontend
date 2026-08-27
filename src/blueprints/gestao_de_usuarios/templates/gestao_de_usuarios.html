@@ -7,8 +7,244 @@
 {% endblock %}
 
 {% block content %}
-<div class="pagetitle mb-4">
-  <h1 class="pagetitle-main">Gestão de Usuários</h1>
+<!-- Cabeçalho com Título e Botão de Ação -->
+<div class="page-header-container mb-4">
+  <div class="pagetitle mb-0">
+    <h1 class="pagetitle-main">Gestão de Usuários</h1>
+  </div>
+  <button type="button" class="btn-add-user" id="btnAbrirModalNovoUsuario">
+    <i class="bi bi-person-plus-fill"></i>
+    <span>Adicionar Novo Usuário</span>
+  </button>
+</div>
+
+<!-- Card da Tabela de Usuários -->
+<div class="users-table-card">
+  <div class="table-header-tools">
+    <div class="search-input-wrapper">
+      <i class="bi bi-search"></i>
+      <input type="text" id="filtroUsuariosTabela" class="form-control" placeholder="Buscar por user, nome ou perfil...">
+    </div>
+    <div class="users-count-badge">
+      <i class="bi bi-people-fill text-warning"></i>
+      <span id="contadorUsuarios">{{ usuarios_cadastrados | length }}</span> usuário(s) cadastrado(s)
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="custom-users-table" id="tabelaUsuarios">
+      <thead>
+        <tr>
+          <th style="width: 22%;">User</th>
+          <th style="width: 38%;">Nome</th>
+          <th style="width: 22%;">Profile</th>
+          <th style="width: 18%; text-align: right;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if usuarios_cadastrados and usuarios_cadastrados | length > 0 %}
+          {% for u in usuarios_cadastrados %}
+          <tr class="usuario-row" data-user="{{ u.cdUser }}" data-nome="{{ u.dsNome }}" data-profile="{{ u.dsProfile }}">
+            <td>
+              <div class="user-avatar-tag">
+                <div class="user-avatar-icon">
+                  <i class="bi bi-person"></i>
+                </div>
+                <span>{{ u.cdUser }}</span>
+              </div>
+            </td>
+            <td>
+              <span class="fw-semibold">{{ u.dsNome }}</span>
+            </td>
+            <td>
+              {% if u.dsProfile == 'ADMIN' %}
+                <span class="badge-profile badge-profile-admin">
+                  <i class="bi bi-shield-lock-fill"></i> ADMIN
+                </span>
+              {% elif u.dsProfile == 'MESA CORE' %}
+                <span class="badge-profile badge-profile-mesa">
+                  <i class="bi bi-briefcase-fill"></i> MESA CORE
+                </span>
+              {% elif u.dsProfile == 'PRIVATE MARKETS' %}
+                <span class="badge-profile badge-profile-private">
+                  <i class="bi bi-graph-up-arrow"></i> PRIVATE MARKETS
+                </span>
+              {% elif u.dsProfile == 'EXTERNO' %}
+                <span class="badge-profile badge-profile-externo">
+                  <i class="bi bi-person-badge"></i> EXTERNO
+                </span>
+              {% else %}
+                <span class="badge-profile badge-profile-default">
+                  {{ u.dsProfile or 'Não definido' }}
+                </span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="table-actions-group">
+                <button type="button" class="btn-action-edit btn-alterar-usuario" data-user="{{ u.cdUser }}" title="Alterar Usuário">
+                  <i class="bi bi-pencil-square"></i>
+                  <span>Alterar</span>
+                </button>
+                <button type="button" class="btn-action-delete btn-excluir-usuario" data-user="{{ u.cdUser }}" data-nome="{{ u.dsNome }}" title="Excluir Usuário">
+                  <i class="bi bi-trash"></i>
+                  <span>Excluir</span>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr id="emptyTableRow">
+            <td colspan="4">
+              <div class="empty-table-state">
+                <i class="bi bi-people"></i>
+                <h5>Nenhum usuário cadastrado</h5>
+                <p class="mb-0">Clique em "Adicionar Novo Usuário" para cadastrar o primeiro usuário do sistema.</p>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="modalUsuario" tabindex="-1" aria-labelledby="modalUsuarioTitle" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content modal-content-custom">
+      <div class="modal-header modal-header-custom">
+        <h5 class="modal-title-custom" id="modalUsuarioTitle">
+          <i class="bi bi-person-plus-fill" id="modalHeaderIcon" style="color: var(--color-accent);"></i>
+          <span id="modalHeaderTitleText">Adicionar Novo Usuário</span>
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <form id="formUsuario" method="POST" action="{{ url_for('gestao_de_usuarios.salvar_usuario') }}" class="needs-validation" novalidate>
+        <input type="hidden" id="inputActionType" name="actionType" value="create">
+        <input type="hidden" id="inputOriginalUser" name="originalUser" value="">
+
+        <div class="modal-body p-4">
+          <div id="modalAlert" class="alert d-none mb-3" role="alert"></div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-4">
+              <label for="inputUser" class="form-label fw-semibold">
+                User <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" id="inputUser" name="cdUser" placeholder="Ex: F123456" required>
+              <div class="invalid-feedback">
+                Por favor, informe o código do usuário.
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <label for="inputNome" class="form-label fw-semibold">
+                Nome <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" id="inputNome" name="dsNome" placeholder="Nome Completo" required>
+              <div class="invalid-feedback">
+                Por favor, informe o nome do usuário.
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <label for="inputPassword" class="form-label fw-semibold">
+                Password <span class="text-danger">*</span>
+              </label>
+              <div class="input-password-wrapper">
+                <input type="password" class="form-control" id="inputPassword" name="cdPassword" placeholder="Senha de acesso" required autocomplete="new-password">
+                <button type="button" class="toggle-password-btn" id="btnTogglePassword" title="Mostrar/Ocultar senha">
+                  <i class="bi bi-eye" id="iconTogglePassword"></i>
+                </button>
+              </div>
+              <div class="invalid-feedback">
+                Por favor, informe a senha.
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label for="selectProfile" class="form-label fw-semibold">
+                Profile <span class="text-danger">*</span>
+              </label>
+              <select class="form-select" id="selectProfile" name="dsProfile" required>
+                <option value="" disabled selected>Selecione um perfil...</option>
+                <option value="ADMIN">ADMIN</option>
+                <option value="MESA CORE">MESA CORE</option>
+                <option value="PRIVATE MARKETS">PRIVATE MARKETS</option>
+                <option value="EXTERNO">EXTERNO</option>
+              </select>
+              <div class="invalid-feedback">
+                Por favor, selecione um perfil.
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <label for="selectAlcadaAprovador" class="form-label fw-semibold">
+                Aprovador de Alçada
+              </label>
+              <select class="form-select" id="selectAlcadaAprovador" name="dsAlcadaAprovador">
+                <option value="Nenhuma" selected>Nenhuma</option>
+                <option value="Gestão">Gestão</option>
+                <option value="IAM">IAM</option>
+                <option value="CSC">CSC</option>
+              </select>
+            </div>
+
+            <div class="col-md-4">
+              <label for="inputPesoAprovacao" class="form-label fw-semibold">
+                Peso <span id="pesoRequiredAsterisk" class="text-danger d-none">*</span>
+              </label>
+              <input type="number" step="0.01" min="0" class="form-control" id="inputPesoAprovacao" name="vlPesoAprovacao" placeholder="Ex: 1.00" disabled>
+              <div class="invalid-feedback" id="pesoInvalidFeedback">
+                O peso é obrigatório quando há um Aprovador de Alçada configurado.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer modal-footer-custom">
+          <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn-add-user px-4" id="btnSalvarUsuario">
+            <i class="bi bi-check-circle me-1"></i>
+            <span id="btnSalvarText">Salvar Usuário</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalConfirmarExclusao" tabindex="-1" aria-labelledby="modalExclusaoTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content modal-content-custom">
+      <div class="modal-header modal-header-custom">
+        <h5 class="modal-title-custom text-danger" id="modalExclusaoTitle">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i> Confirmar Exclusão
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body p-4 text-center">
+        <div class="mb-3">
+          <i class="bi bi-person-x-fill text-danger" style="font-size: 48px;"></i>
+        </div>
+        <h6 class="mb-2 fw-semibold">Deseja realmente excluir este usuário?</h6>
+        <p class="text-muted mb-0">
+          O usuário <strong id="deleteUserDisplay" class="text-warning"></strong> (<span id="deleteNomeDisplay"></span>) será removido permanentemente.
+        </p>
+      </div>
+      <form id="formDeletarUsuario" method="POST" action="{{ url_for('gestao_de_usuarios.deletar_usuario') }}">
+        <input type="hidden" id="inputDeleteCdUser" name="cdUser" value="">
+        <div class="modal-footer modal-footer-custom justify-content-center">
+          <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger px-4 fw-semibold">
+            <i class="bi bi-trash me-1"></i> Confirmar Exclusão
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
