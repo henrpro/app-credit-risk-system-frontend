@@ -66,14 +66,26 @@
       {% for e in dados_grupo %}
       <div class="emissor-card p-4 mb-4" style="position: relative;" data-emissor-index="{{ loop.index0 }}">
         <input type="hidden" name="idEmissor[]" value="{{ e.idEmissor or '' }}">
+        <input type="hidden" name="grupoDestinoEmissor[]" value="" class="input-grupo-destino">
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <h5 class="emissor-card-title mb-0">
-            <i class="bi bi-building me-2"></i><span class="emissor-title-text">Emissor #{{ loop.index }}</span>
-          </h5>
-          <button type="button" class="btn btn-outline-danger remove-emissor-btn" title="Remover Emissor">
-            <i class="bi bi-trash me-1"></i>Remover
-          </button>
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <h5 class="emissor-card-title mb-0">
+              <i class="bi bi-building me-2"></i><span class="emissor-title-text">Emissor #{{ loop.index }}</span>
+            </h5>
+            <span class="badge bg-warning text-dark transfer-badge d-none">
+              <i class="bi bi-arrow-right me-1"></i>Mudando para: <strong class="target-group-name"></strong>
+              <button type="button" class="btn-close ms-1 btn-cancel-transfer" title="Cancelar transferência" style="font-size: 0.65rem; vertical-align: middle;"></button>
+            </span>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-warning btn-trocar-grupo" title="Trocar Emissor de Grupo">
+              <i class="bi bi-arrow-left-right me-1"></i>Trocar Emissor de Grupo
+            </button>
+            <button type="button" class="btn btn-outline-danger remove-emissor-btn" title="Excluir Emissor">
+              <i class="bi bi-trash me-1"></i>Excluir
+            </button>
+          </div>
         </div>
 
         <!-- Linha 1: CNPJ (3), Nome do Emissor (6), Setor (3) -->
@@ -212,14 +224,26 @@
 <template id="emissorTemplate">
   <div class="emissor-card p-4 mb-4" style="position: relative;">
     <input type="hidden" name="idEmissor[]" value="">
+    <input type="hidden" name="grupoDestinoEmissor[]" value="" class="input-grupo-destino">
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h5 class="emissor-card-title mb-0">
-        <i class="bi bi-building me-2"></i><span class="emissor-title-text">Emissor</span>
-      </h5>
-      <button type="button" class="btn btn-outline-danger remove-emissor-btn" title="Remover Emissor">
-        <i class="bi bi-trash me-1"></i>Remover
-      </button>
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <h5 class="emissor-card-title mb-0">
+          <i class="bi bi-building me-2"></i><span class="emissor-title-text">Emissor</span>
+        </h5>
+        <span class="badge bg-warning text-dark transfer-badge d-none">
+          <i class="bi bi-arrow-right me-1"></i>Mudando para: <strong class="target-group-name"></strong>
+          <button type="button" class="btn-close ms-1 btn-cancel-transfer" title="Cancelar transferência" style="font-size: 0.65rem; vertical-align: middle;"></button>
+        </span>
+      </div>
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-warning btn-trocar-grupo" title="Trocar Emissor de Grupo">
+          <i class="bi bi-arrow-left-right me-1"></i>Trocar Emissor de Grupo
+        </button>
+        <button type="button" class="btn btn-outline-danger remove-emissor-btn" title="Excluir Emissor">
+          <i class="bi bi-trash me-1"></i>Excluir
+        </button>
+      </div>
     </div>
 
     <!-- Linha 1: CNPJ (3), Nome do Emissor (6), Setor (3) -->
@@ -475,8 +499,15 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
       <div class="modal-body">
-        <p class="mb-2">Tem certeza que deseja deletar o grupo econômico <strong id="deleteGrupoNomeDisplay">{{ grupo_selecionado }}</strong>?</p>
-        <p class="text-danger small mb-0"><i class="bi bi-info-circle me-1"></i>Esta ação excluirá o grupo e todas as suas associações e não poderá ser desfeita.</p>
+        <p class="mb-3">Tem certeza que deseja deletar o grupo econômico <strong id="deleteGrupoNomeDisplay">{{ grupo_selecionado }}</strong>?</p>
+        <div class="alert alert-danger mb-0" role="alert">
+          <div class="d-flex">
+            <i class="bi bi-exclamation-octagon-fill fs-4 me-2 text-danger flex-shrink-0"></i>
+            <div>
+              <strong>ATENÇÃO:</strong> Esta ação é irreversível e excluirá permanentemente o grupo econômico, <strong>todos os seus emissores cadastrados, limites aprovados e vigentes (com histórico), ratings (do grupo e dos emissores), solicitações de crédito, deliberações e mapeamentos de ativos</strong> em todas as bases do sistema.
+            </div>
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -487,6 +518,76 @@
             <i class="bi bi-trash"></i> Sim, Deletar Grupo
           </button>
         </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Trocar Emissor de Grupo -->
+<div class="modal fade" id="modalTrocarEmissorGrupo" tabindex="-1" aria-labelledby="modalTrocarEmissorGrupoLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fs-5" id="modalTrocarEmissorGrupoLabel">
+          <i class="bi bi-arrow-left-right text-warning me-2"></i>Trocar Emissor de Grupo
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-2">Selecione o novo grupo econômico para transferir o emissor <strong id="trocarEmissorNomeDisplay"></strong>:</p>
+        <div class="mb-3">
+          <label for="selectNovoGrupoDestino" class="form-label fw-semibold">Grupo Econômico de Destino <span class="text-danger">*</span></label>
+          <select class="form-select" id="selectNovoGrupoDestino">
+            <option value="" disabled selected>Selecione o grupo de destino...</option>
+            {% for item in grupos_cadastrados %}
+              {% set grupo_nome = item.dsGrupo if item.dsGrupo is defined else item %}
+              {% if grupo_nome != grupo_selecionado %}
+                <option value="{{ grupo_nome }}">{{ grupo_nome }}</option>
+              {% endif %}
+            {% endfor %}
+          </select>
+          <div class="invalid-feedback" id="feedbackGrupoDestino">Selecione um grupo econômico de destino.</div>
+        </div>
+        <div class="alert alert-warning small mb-0" role="alert">
+          <i class="bi bi-info-circle me-1"></i>A transferência do emissor e o reset de suas vinculações de holding anteriores serão efetivados quando você clicar em <strong>Salvar Alterações</strong>.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-warning d-flex align-items-center gap-2" id="btnConfirmarTrocaGrupo">
+          <i class="bi bi-check-circle"></i> Confirmar Troca de Grupo
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmar Exclusão de Emissor -->
+<div class="modal fade" id="modalConfirmarDeletarEmissor" tabindex="-1" aria-labelledby="modalConfirmarDeletarEmissorLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fs-5 text-danger" id="modalConfirmarDeletarEmissorLabel">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>Confirmar Exclusão de Emissor
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-3">Tem certeza que deseja excluir o emissor <strong id="deleteEmissorNomeDisplay"></strong>?</p>
+        <div class="alert alert-danger mb-0" role="alert">
+          <div class="d-flex">
+            <i class="bi bi-exclamation-octagon-fill fs-4 me-2 text-danger flex-shrink-0"></i>
+            <div>
+              <strong>ATENÇÃO:</strong> Ao salvar as alterações deste grupo econômico, <strong>todos os limites e ratings aprovados para este emissor, inclusive todo o histórico</strong>, mapeamentos de ativos, solicitações de crédito e controles vigentes serão <strong>permanentemente excluídos</strong> de todas as bases do sistema.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger d-flex align-items-center gap-2" id="btnConfirmarExcluirEmissor">
+          <i class="bi bi-trash"></i> Sim, Remover Emissor
+        </button>
       </div>
     </div>
   </div>

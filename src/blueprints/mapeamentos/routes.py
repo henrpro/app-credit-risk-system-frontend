@@ -44,11 +44,13 @@ def emissor_consumo():
 @login_required
 def salvar_ativo():
     try:
+        # Extraimos as informações necessárias
         cd_ticker = request.form.get('cdTicker', '').strip().upper()
         id_emissor = request.form.get('idEmissor')
         id_emissor_consumo = request.form.get('idEmissorConsumo')
         vl_pc_consumo = request.form.get('vlPcConsumo', '1.0').replace(',', '.')
 
+        # Montamos o payload
         payload = {
             'cdTicker': cd_ticker,
             'idEmissor': int(id_emissor),
@@ -56,6 +58,7 @@ def salvar_ativo():
             'vlPcConsumo': float(vl_pc_consumo)
         }
 
+        # Fazemos a requisição
         APIMapeamentosService.salvar_mapeamento_ativo(payload)
         flash(f"Mapeamento do ativo '{cd_ticker}' salvo com sucesso!", "success")
     except Exception as e:
@@ -108,23 +111,21 @@ def produtos_oc3():
 @login_required
 def salvar_produto():
     try:
+        # Extraimos as informações necessárias
         cd_produto_oc3 = request.form.get('cdProdutoOC3', '').strip()
         ic_captura = request.form.get('icCaptura', '1')
 
-        if not cd_produto_oc3:
-            flash("O código do produto OC3 é obrigatório.", "error")
-            return redirect(url_for('mapeamentos.produtos_oc3'))
-
+        # Montamos o payload
         payload = {
             'cdProdutoOC3': cd_produto_oc3,
             'icCaptura': int(ic_captura)
         }
 
+        # Fazemos a requisição
         APIMapeamentosService.salvar_mapeamento_produto(payload)
         flash(f"Mapeamento do produto '{cd_produto_oc3}' salvo com sucesso!", "success")
     except Exception as e:
         flash(f"Erro ao salvar mapeamento do produto: {str(e)}", "error")
-
     return redirect(url_for('mapeamentos.produtos_oc3'))
 
 
@@ -175,10 +176,6 @@ def salvar_manager():
         ds_manager = request.form.get('dsManager', '').strip()
         cd_mesa = request.form.get('cdMesa', '').strip()
 
-        if not ds_manager or not cd_mesa:
-            flash("O nome do manager e a mesa são obrigatórios.", "error")
-            return redirect(url_for('mapeamentos.novos_managers'))
-
         payload = {
             'dsManager': ds_manager,
             'cdMesa': cd_mesa
@@ -202,7 +199,6 @@ def deletar_manager():
         flash(f"Mapeamento do manager '{ds_manager}' removido com sucesso!", "success")
     except Exception as e:
         flash(f"Erro ao excluir mapeamento do manager: {str(e)}", "error")
-
     return redirect(url_for('mapeamentos.novos_managers'))
 
 

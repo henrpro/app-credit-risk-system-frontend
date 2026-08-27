@@ -7,12 +7,19 @@ document.addEventListener('DOMContentLoaded', function () {
     // Modais e elementos de controle
     const modalElOC3 = document.getElementById('modalAssociarOC3');
     const modalElCRIMS = document.getElementById('modalAssociarCRIMS');
+    const modalElTrocarGrupo = document.getElementById('modalTrocarEmissorGrupo');
+    const modalElDeleteEmissor = document.getElementById('modalConfirmarDeletarEmissor');
+
     const bsModalOC3 = modalElOC3 ? new bootstrap.Modal(modalElOC3) : null;
     const bsModalCRIMS = modalElCRIMS ? new bootstrap.Modal(modalElCRIMS) : null;
+    const bsModalTrocarGrupo = modalElTrocarGrupo ? new bootstrap.Modal(modalElTrocarGrupo) : null;
+    const bsModalDeleteEmissor = modalElDeleteEmissor ? new bootstrap.Modal(modalElDeleteEmissor) : null;
 
-    // Referência do card de emissor atualmente em edição pelo modal
+    // Referências para controle de modais
     let currentTargetCard = null;
-    let currentModalType = null; 
+    let currentModalType = null;
+    let cardToTransfer = null;
+    let cardToDelete = null; 
 
     function maskCNPJ(value) {
         return value
@@ -400,12 +407,61 @@ document.addEventListener('DOMContentLoaded', function () {
             card.crimsItems = card.crimsItems || [];
         }
 
-        // Botão de remoção do emissor
+        // Botão de remoção do emissor com modal de confirmação para emissores salvos
         const btnRemove = card.querySelector('.remove-emissor-btn');
         if (btnRemove) {
             btnRemove.addEventListener('click', function () {
-                card.remove();
-                updateEmissoresState();
+                const idInput = card.querySelector('input[name="idEmissor[]"]');
+                const hasId = idInput && idInput.value && idInput.value.trim() !== '';
+                const nameInput = card.querySelector('.input-nome-emissor');
+                const emissorName = nameInput && nameInput.value.trim() !== '' ? nameInput.value.trim() : 'selecionado';
+
+                if (hasId && bsModalDeleteEmissor) {
+                    cardToDelete = card;
+                    const nameDisplay = document.getElementById('deleteEmissorNomeDisplay');
+                    if (nameDisplay) {
+                        nameDisplay.textContent = emissorName;
+                    }
+                    bsModalDeleteEmissor.show();
+                } else {
+                    card.remove();
+                    updateEmissoresState();
+                }
+            });
+        }
+
+        // Botão trocar emissor de grupo
+        const btnTrocarGrupo = card.querySelector('.btn-trocar-grupo');
+        if (btnTrocarGrupo) {
+            btnTrocarGrupo.addEventListener('click', function () {
+                cardToTransfer = card;
+                const nameInput = card.querySelector('.input-nome-emissor');
+                const emissorName = nameInput && nameInput.value.trim() !== '' ? nameInput.value.trim() : 'selecionado';
+                const nameDisplay = document.getElementById('trocarEmissorNomeDisplay');
+                if (nameDisplay) {
+                    nameDisplay.textContent = emissorName;
+                }
+                const selectDestino = document.getElementById('selectNovoGrupoDestino');
+                if (selectDestino) {
+                    const currentDestino = card.querySelector('.input-grupo-destino')?.value || '';
+                    selectDestino.value = currentDestino;
+                    selectDestino.classList.remove('is-invalid');
+                }
+                if (bsModalTrocarGrupo) {
+                    bsModalTrocarGrupo.show();
+                }
+            });
+        }
+
+        // Botão cancelar transferência de grupo
+        const btnCancelTransfer = card.querySelector('.btn-cancel-transfer');
+        if (btnCancelTransfer) {
+            btnCancelTransfer.addEventListener('click', function (e) {
+                e.stopPropagation();
+                const inputDestino = card.querySelector('.input-grupo-destino');
+                if (inputDestino) inputDestino.value = '';
+                const badge = card.querySelector('.transfer-badge');
+                if (badge) badge.classList.add('d-none');
             });
         }
 
@@ -626,6 +682,50 @@ document.addEventListener('DOMContentLoaded', function () {
         formDeletarGrupo.addEventListener('submit', function () {
             btnConfirmarExclusao.disabled = true;
             btnConfirmarExclusao.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Deletando...';
+        });
+    }
+
+    // Modal de Confirmação de Exclusão de Emissor
+    const btnConfirmarExcluirEmissor = document.getElementById('btnConfirmarExcluirEmissor');
+    if (btnConfirmarExcluirEmissor) {
+        btnConfirmarExcluirEmissor.addEventListener('click', function () {
+            if (cardToDelete) {
+                cardToDelete.remove();
+                cardToDelete = null;
+                updateEmissoresState();
+            }
+            if (bsModalDeleteEmissor) {
+                bsModalDeleteEmissor.hide();
+            }
+        });
+    }
+
+    // Modal de Troca de Grupo de Emissor
+    const btnConfirmarTrocaGrupo = document.getElementById('btnConfirmarTrocaGrupo');
+    if (btnConfirmarTrocaGrupo) {
+        btnConfirmarTrocaGrupo.addEventListener('click', function () {
+            const selectDestino = document.getElementById('selectNovoGrupoDestino');
+            if (!selectDestino || !selectDestino.value) {
+                if (selectDestino) selectDestino.classList.add('is-invalid');
+                return;
+            }
+
+            const targetGroup = selectDestino.value.trim();
+            if (cardToTransfer) {
+                const inputDestino = cardToTransfer.querySelector('.input-grupo-destino');
+                if (inputDestino) inputDestino.value = targetGroup;
+
+                const badge = cardToTransfer.querySelector('.transfer-badge');
+                const targetNameSpan = cardToTransfer.querySelector('.target-group-name');
+                if (badge && targetNameSpan) {
+                    targetNameSpan.textContent = targetGroup;
+                    badge.classList.remove('d-none');
+                }
+            }
+
+            if (bsModalTrocarGrupo) {
+                bsModalTrocarGrupo.hide();
+            }
         });
     }
 

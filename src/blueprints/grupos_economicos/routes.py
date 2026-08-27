@@ -315,6 +315,7 @@ def alterar_grupo_economico():
                 consome_holdings = request.form.getlist('consomeHolding[]')
                 holdings_consumo = request.form.getlist('holdingConsumo[]')
                 setores_list = request.form.getlist('setorEmissor[]')
+                grupos_destino = request.form.getlist('grupoDestinoEmissor[]')
 
                 # Mapeamento de nome -> id caso algum emissor holding tenha vindo como nome
                 nome_to_id = {
@@ -346,12 +347,22 @@ def alterar_grupo_economico():
                         else None
                     )
 
+                    # Buscamos se há grupo de destino para transferência
+                    grupo_destino = (
+                        grupos_destino[i].strip()
+                        if i < len(grupos_destino)
+                        and grupos_destino[i]
+                        and grupos_destino[i].strip()
+                        else None
+                    )
+
                     # Montamos o dicionário com os dados do emissor
                     emissor = {
                         # Nome do emissor, ID e Cnpj
                         'idEmissor': id_emissor,
                         'cdCnpj': cnpjs[i].strip() if i < len(cnpjs) else '',
                         'dsEmissor': nome.strip(),
+                        'dsGrupoDestino': grupo_destino,
 
                         # Buscamos se o emissor é uma holding e se consome de alguma holding
                         'icHolding': int(is_holdings[i] == 'sim'),
