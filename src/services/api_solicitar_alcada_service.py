@@ -50,10 +50,30 @@ class APISolicitarAlcadaService:
             raise e
 
     @classmethod
-    def registrar_solicitacao_alcada(self, payload: dict):
+    def get_detalhes_solicitacao(cls, id_solicitacao: int):
+        try:
+            response = requests.get(f"{current_app.config['BACKEND_URL']}/v1/solicitar-alcada/obtem-detalhes-solicitacao", params={'idSolicitacao': id_solicitacao})
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            raise Exception(response.text) from e
+        except Exception as e:
+            raise e
+
+    @classmethod
+    def registrar_solicitacao_alcada(cls, payload: dict):
         try:
             response = requests.post(f"{current_app.config['BACKEND_URL']}/v1/solicitar-alcada/insert-solicitacao-alcada", json=payload)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:
             raise Exception(response.text) from e
+
+    @classmethod
+    def atualizar_solicitacao_alcada(cls, payload: dict):
+        try:
+            response = requests.post(f"{current_app.config['BACKEND_URL']}/v1/solicitar-alcada/update-solicitacao-alcada", json=payload)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            raise Exception(response.text) from e

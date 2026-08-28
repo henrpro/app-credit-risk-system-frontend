@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+
+{% block title %}CRS - Solicitar Alçada: Abertura de Limite{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('solicitar_alcada.static', filename='css/solicitar_alcada.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+{% set ds_rt = 'Multimesas' if (current_user.is_authenticated and current_user.grupo == 'PRIVATE MARKETS') else 'RT' %}
+<div class="pagetitle mb-4">
+  <h1 class="pagetitle-main">Solicitar Alçada: <span class="text-orange">Abertura de Limite</span></h1>
+</div>
+
+<!-- Card de Seleção Inicial (Desabilitado / Informativo) -->
+<div class="card p-4 mb-4">
+  <div class="row align-items-end g-3">
+    <div class="col-md-4 col-lg-4">
+      <label for="selectGrupoEconomico" class="form-label">Grupo Econômico</label>
+      <select class="form-select" id="selectGrupoEconomico" disabled>
+        <option value="{{ grupo_selecionado }}" selected>{{ grupo_selecionado }}</option>
+      </select>
+    </div>
+    <div class="col-md-5 col-lg-6">
+      <label for="selectTipoEvento" class="form-label">Evento</label>
+      <select class="form-select" id="selectTipoEvento" disabled>
+        <option value="{{ evento_selecionado }}" selected>{{ evento_selecionado }}</option>
+      </select>
+    </div>
+    <div class="col-md-3 col-lg-2">
+      <a href="{{ url_for('solicitar_alcada.solicitar_alcada') }}" class="btn btn-outline-secondary w-100 py-2 d-flex align-items-center justify-content-center gap-2">
+        <i class="bi bi-arrow-left"></i> Trocar Evento
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Dados em JSON para scripts -->
+<script id="ratingsDataJson" type="application/json">{{ ratings_cadastrados|tojson }}</script>
+<script id="flexibilizacaoDataJson" type="application/json">[]</script>
+
+<!-- Formulário de Solicitação de Alçada: Abertura de Limite -->
+<form id="formSalvarSolicitacaoAlcada" method="POST" action="{{ url_for('solicitar_alcada.solicitar_alcada_formulario') }}" class="needs-validation" data-template-tipo="abertura" data-tipo-evento="{{ evento_selecionado }}">
+  <input type="hidden" name="action" value="salvar_alcada">
+  <input type="hidden" name="idSolicitacao" value="{{ id_solicitacao or '' }}">
+  <input type="hidden" name="dsGrupo" value="{{ grupo_selecionado }}">
+  <input type="hidden" name="dsTipoEvento" value="{{ evento_selecionado }}">
+
+  <!-- Card Consolidado do Grupo Econômico -->
+  <div class="card p-4 mb-4 section-card">
+    <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+      <h4 class="section-title mb-0">
+        <i class="bi bi-building-gear me-2"></i>Grupo Econômico: <span class="entity-name-highlight">{{ grupo_selecionado }}</span>
+      </h4>
+      <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-2">
+        <i class="bi bi-eye me-1"></i>Visão Consolidada {% if id_solicitacao %}(Editando #{{ id_solicitacao }}){% endif %}
+      </span>
+    </div>
+
+    <!-- Controles Superiores do Grupo Econômico -->
+    <div class="card-indicators-bar mb-4">
+      <div class="row g-3 align-items-center">
+        <div class="col-md-6">
+          <div class="indicator-field-group">
+            <label class="indicator-field-label" for="selectRatingGrupoProposto">
+              Rating do Grupo Proposto <span class="text-danger">*</span>
+            </label>
+            <select class="form-select form-select-sm select-indicator" id="selectRatingGrupoProposto" name="cdRatingGrupoProposto" required>
+              <option value="">Selecione o rating...</option>
+              {% for r in ratings_cadastrados %}
+                {% set r_cod = r.cdRating if r.cdRating is defined else r %}
+                <option value="{{ r_cod }}" {% if (grupo_info and grupo_info.cdRatingGrupoProposto and grupo_info.cdRatingGrupoProposto == r_cod) or (grupo_info and grupo_info.cdRatingGrupo and grupo_info.cdRatingGrupo == r_cod) %}selected{% endif %}>{{ r_cod }}</option>
+              {% endfor %}
+            </select>
+            <div class="invalid-feedback">Selecione o rating do grupo.</div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="indicator-field-group">
+            <label class="indicator-field-label" for="inputShareDividaGrupo">Share da Dívida do Grupo (%)</label>
+            <div class="input-group input-group-sm">
+              <input type="number" step="0.01" min="0" max="100" class="form-control input-indicator" id="inputShareDividaGrupo" name="vlShareDividaGrupo" placeholder="Ex: 25.00" value="{{ grupo_info.vlShareDivida if (grupo_info and grupo_info.vlShareDivida) else '' }}">
+              <span class="input-group-text">%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabela Consolidada do Grupo (Apenas Proposto) -->
+    <div class="table-unificada-wrapper">
+      <table class="table-unificada" id="tabelaGrupoConsolidada">
+        <thead>
+          <tr>
+            <th class="th-center th-prazo" style="width: 16%;">Prazo</th>
+            <th class="th-proposto text-end" style="width: 28%;">Total Proposto</th>
+            <th class="th-proposto text-end" style="width: 28%;">Terceiros Proposto</th>
+            <th class="th-proposto text-end" style="width: 28%;">{{ ds_rt }} Proposto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Preenchido automaticamente pelo JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Seção de Emissores do Grupo -->
+  <div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="section-heading-main fs-4 mb-0">Emissores do Grupo</h4>
+      <span class="badge bg-secondary px-3 py-2">{{ emissores_info|length if emissores_info else 1 }} emissor(es)</span>
+    </div>
+
+    {% set emissores_lista = emissores_info if (emissores_info and emissores_info|length > 0) else [{'idEmissor': 1, 'dsEmissor': grupo_selecionado, 'linhas': []}] %}
+
+    {% for e in emissores_lista %}
+    {% set emissor_idx = loop.index0 %}
+    {% set has_meta = e.meta is defined and e.meta and e.meta.rows and e.meta.rows|length > 0 %}
+    <div class="card p-4 mb-4 emissor-card section-card" data-emissor-index="{{ emissor_idx }}" data-emissor-id="{{ e.idEmissor or '' }}" data-emissor-nome="{{ e.dsEmissor or '' }}">
+      <input type="hidden" name="emissores[{{ emissor_idx }}][idEmissor]" value="{{ e.idEmissor or '' }}">
+      <input type="hidden" name="emissores[{{ emissor_idx }}][dsEmissor]" value="{{ e.dsEmissor or '' }}">
+
+      <div class="section-header d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+        <h5 class="section-title mb-0">
+          <i class="bi bi-building me-2"></i>Emissor #{{ loop.index }}: <span class="entity-name-highlight">{{ e.dsEmissor or ('Emissor #' ~ loop.index) }}</span>
+        </h5>
+
+        <div class="emissor-actions-toolbar d-flex align-items-center gap-2">
+          <button type="button" class="btn-add-emissor-row" data-emissor-index="{{ emissor_idx }}">
+            <i class="bi bi-plus-circle me-1"></i>Adicionar Prazo
+          </button>
+          <button type="button" class="btn-open-meta-modal {% if has_meta %}has-meta{% endif %}" data-emissor-index="{{ emissor_idx }}" data-emissor-nome="{{ e.dsEmissor or ('Emissor #' ~ loop.index) }}">
+            {% if has_meta %}
+              <i class="bi bi-check2-circle me-1"></i>Limite Meta ({{ e.meta.rows|length }} prazos)
+            {% else %}
+              <i class="bi bi-bullseye me-1"></i>Adicionar Limite Meta
+            {% endif %}
+          </button>
+
+          <div class="runoff-switch-wrapper d-flex align-items-center gap-2 ms-2">
+            <span class="runoff-switch-label">Run-Off</span>
+            <label class="image-style-switch" for="runOff_{{ emissor_idx }}">
+              <input type="checkbox" id="runOff_{{ emissor_idx }}" class="check-run-off" name="emissores[{{ emissor_idx }}][icRunOff]" value="1" {% if e.icRunOff %}checked{% endif %}>
+              <span class="switch-slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Container para hidden inputs de Limite Meta pré-carregados -->
+      <div class="meta-hidden-inputs d-none">
+        {% if has_meta %}
+          <input type="hidden" name="emissores[{{ emissor_idx }}][meta][dtVencimento]" value="{{ e.meta.dtVencimento or '' }}">
+          <input type="hidden" name="emissores[{{ emissor_idx }}][meta][cdRating]" value="{{ e.meta.cdRating or '' }}">
+          <input type="hidden" name="emissores[{{ emissor_idx }}][meta][shareDivida]" value="{{ e.meta.shareDivida or '' }}">
+          {% for mr in e.meta.rows %}
+            <input type="hidden" name="emissores[{{ emissor_idx }}][meta][rows][{{ loop.index0 }}][prazo]" value="{{ mr.prazo if mr.prazo is defined else mr.vlPrazo }}">
+            <input type="hidden" name="emissores[{{ emissor_idx }}][meta][rows][{{ loop.index0 }}][terceiros]" value="{{ mr.terceiros if mr.terceiros is defined else (mr.terceirosProposto if mr.terceirosProposto is defined else mr.vlTerceiros) }}">
+            <input type="hidden" name="emissores[{{ emissor_idx }}][meta][rows][{{ loop.index0 }}][rt]" value="{{ mr.rt if mr.rt is defined else (mr.rtProposto if mr.rtProposto is defined else mr.vlReservaTecnica) }}">
+          {% endfor %}
+        {% endif %}
+      </div>
+
+      <!-- Controles Superiores do Emissor -->
+      <div class="card-indicators-bar mb-4">
+        <div class="row g-3 align-items-center">
+          <div class="col-md-6">
+            <div class="indicator-field-group">
+              <label class="indicator-field-label" for="ratingProp_{{ emissor_idx }}">
+                Rating Proposto <span class="text-danger">*</span>
+              </label>
+              <select class="form-select form-select-sm select-indicator select-rating-proposto-emissor" id="ratingProp_{{ emissor_idx }}" name="emissores[{{ emissor_idx }}][cdRatingProposto]" required>
+                <option value="">Selecione o rating...</option>
+                {% for r in ratings_cadastrados %}
+                  {% set r_cod = r.cdRating if r.cdRating is defined else r %}
+                  <option value="{{ r_cod }}" {% if (e.cdRatingProposto and e.cdRatingProposto == r_cod) or (e.cdRatingEmissor and e.cdRatingEmissor == r_cod) %}selected{% endif %}>{{ r_cod }}</option>
+                {% endfor %}
+              </select>
+              <div class="invalid-feedback">Selecione o rating do emissor.</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="indicator-field-group">
+              <label class="indicator-field-label" for="shareDivida_{{ emissor_idx }}">Share da Dívida (%)</label>
+              <div class="input-group input-group-sm">
+                <input type="number" step="0.01" min="0" max="100" class="form-control input-indicator" id="shareDivida_{{ emissor_idx }}" name="emissores[{{ emissor_idx }}][vlShareDivida]" placeholder="Ex: 15.50" value="{{ e.vlShareDivida if e.vlShareDivida is defined else '' }}">
+                <span class="input-group-text">%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela do Emissor (Apenas Colunas Propostas) -->
+      <div class="table-unificada-wrapper">
+        <table class="table-unificada table-emissor-unificada" data-emissor-index="{{ emissor_idx }}" data-emissor-id="{{ e.idEmissor or '' }}">
+          <thead>
+            <tr>
+              <th class="th-center th-prazo" style="width: 16%;">Prazo</th>
+              <th class="th-proposto text-end" style="width: 27%;">Total Proposto</th>
+              <th class="th-proposto text-end" style="width: 27%;">Terceiros Proposto</th>
+              <th class="th-proposto text-end" style="width: 25%;">{{ ds_rt }} Proposto</th>
+              <th style="width: 5%;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% set linhas_emissor = e.linhas if (e.linhas is defined and e.linhas|length > 0) else [{'vlPrazo': '', 'vlTerceirosProposto': '', 'vlReservaTecnicaProposto': ''}] %}
+            {% for linha in linhas_emissor %}
+            <tr class="emissor-table-row">
+              <td class="text-center">
+                <input type="number" step="1" min="1" class="table-input input-prazo" name="emissores[{{ emissor_idx }}][prazos][]" value="{{ linha.vlPrazo if linha.vlPrazo else '' }}" placeholder="Prazo" required>
+                <div class="row-validation-feedback cascade-feedback d-none"></div>
+              </td>
+              <td>
+                <span class="cell-total-calc total-proposto total-proposto-calc cell-val-proposto">0,00</span>
+                <input type="hidden" class="input-hidden-total-proposto" name="emissores[{{ emissor_idx }}][totais_proposto][]" value="0">
+              </td>
+              <td>
+                <input type="number" step="0.01" min="0" class="table-input input-terceiros-proposto cell-val-proposto" name="emissores[{{ emissor_idx }}][terceiros_proposto][]" value="{{ linha.vlTerceirosProposto if linha.vlTerceirosProposto is defined else (linha.vlTerceiros if linha.vlTerceiros is not none else '') }}" placeholder="0,00" required>
+              </td>
+              <td>
+                <input type="number" step="0.01" min="0" class="table-input input-rt-proposto cell-val-proposto" name="emissores[{{ emissor_idx }}][rts_proposto][]" value="{{ linha.vlReservaTecnicaProposto if linha.vlReservaTecnicaProposto is defined else (linha.vlReservaTecnica if linha.vlReservaTecnica is not none else '') }}" placeholder="0,00" required>
+              </td>
+              <td class="text-center">
+                <button type="button" class="btn-remove-row" title="Remover Linha"><i class="bi bi-trash"></i></button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Botão de Envio / Submissão -->
+  <div class="row mt-4 mb-5">
+    <div class="col-12 text-center">
+      <button type="submit" id="btnSalvarSolicitacao" class="btn-orange px-5 py-2 fs-6">
+        <i class="bi bi-check2-circle me-2"></i>Salvar Solicitação de Alçada
+      </button>
+    </div>
+  </div>
+</form>
+
+<!-- Modal Limite Meta -->
+<div class="modal fade" id="modalLimiteMeta" tabindex="-1" aria-labelledby="modalMetaEmissorNome" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header modal-meta-header">
+        <h5 class="modal-title modal-meta-title" id="modalMetaEmissorNome">
+          <i class="bi bi-bullseye text-orange me-2"></i>Limite Meta
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="row g-3 mb-4">
+          <div class="col-md-4">
+            <label class="form-label small">Data Vencimento Limite Meta <span class="text-danger">*</span></label>
+            <input type="date" class="form-control form-control-sm" id="metaDtVencimento">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small">Rating Proposto Meta</label>
+            <select class="form-select form-select-sm" id="metaSelectRating">
+              <option value="">Selecione...</option>
+              {% for r in ratings_cadastrados %}
+                {% set r_cod = r.cdRating if r.cdRating is defined else r %}
+                <option value="{{ r_cod }}">{{ r_cod }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small">Share da Dívida Meta (%)</label>
+            <input type="number" step="0.01" min="0" max="100" class="form-control form-control-sm" id="metaInputShare" placeholder="0,00%">
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold mb-0" style="color: var(--color-text-main);">
+            <i class="bi bi-table me-1"></i>Prazos e Limites Meta
+          </h6>
+          <button type="button" class="btn btn-sm btn-outline-primary btn-add-row" id="btnAddMetaRow">
+            <i class="bi bi-plus-circle me-1"></i>Adicionar Prazo Meta
+          </button>
+        </div>
+
+        <div class="table-unificada-wrapper">
+          <table class="table-unificada" id="tabelaModalLimiteMeta">
+            <thead>
+              <tr>
+                <th class="th-center th-prazo" style="width: 20%;">Prazo</th>
+                <th class="th-proposto text-end" style="width: 25%;">Total Proposto</th>
+                <th class="th-proposto text-end" style="width: 25%;">Terceiros Proposto</th>
+                <th class="th-proposto text-end" style="width: 25%;">{{ ds_rt }} Proposto</th>
+                <th style="width: 5%;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Linhas preenchidas dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer d-flex justify-content-between">
+        <button type="button" class="btn btn-outline-danger" id="btnRemoverModalMeta">
+          <i class="bi bi-trash me-1"></i>Remover Limite Meta
+        </button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-orange px-4" id="btnSalvarModalMeta">
+            <i class="bi bi-check2 me-1"></i>Confirmar Limite Meta
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('solicitar_alcada.static', filename='js/solicitar_alcada.js') }}"></script>
+{% endblock %}
