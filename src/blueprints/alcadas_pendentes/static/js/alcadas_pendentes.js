@@ -67,9 +67,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // -------------------------------------------------------------------------
     // 3. RENDERIZADORES DE TABELA DO MODAL
     // -------------------------------------------------------------------------
-    function renderTabelaConsolidadaSimples(linhas, labelRt = 'RT / Multimesas') {
+    function renderTabelaConsolidadaSimples(linhas, labelRt = 'RT', emptyMsg = 'Nenhum limite solicitado') {
         if (!Array.isArray(linhas) || linhas.length === 0) {
-            return `<tr><td colspan="4" class="text-center text-muted py-3">Nenhum limite cadastrado</td></tr>`;
+            return `<tr><td colspan="4" class="text-center text-muted py-3">${emptyMsg}</td></tr>`;
         }
 
         return linhas.map(l => {
@@ -89,9 +89,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }).join('');
     }
 
-    function renderTabelaMesaSimples(linhas, labelRt = 'RT') {
+    function renderTabelaMesaSimples(linhas, labelRt = 'RT', emptyMsg = 'Nenhum limite solicitado') {
         if (!Array.isArray(linhas) || linhas.length === 0) {
-            return `<tr><td colspan="3" class="text-center text-muted py-3">Nenhum limite cadastrado</td></tr>`;
+            return `<tr><td colspan="3" class="text-center text-muted py-3">${emptyMsg}</td></tr>`;
         }
 
         return linhas.map(l => {
@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }).join('');
     }
 
-    function renderBlocoConsolidadoComMeta(titulo, linhasNormal, linhasMeta, labelRt = 'RT / Multimesas') {
+    function renderBlocoConsolidadoComMeta(titulo, linhasNormal, linhasMeta, labelRt = 'RT', emptyMsg = 'Nenhum limite solicitado') {
         const hasMeta = Array.isArray(linhasMeta) && linhasMeta.length > 0;
         return `
             <div class="detail-section-card mb-4">
@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             </tr>
                         </thead>
                         <tbody>
-                            ${renderTabelaConsolidadaSimples(linhasNormal, labelRt)}
+                            ${renderTabelaConsolidadaSimples(linhasNormal, labelRt, emptyMsg)}
                         </tbody>
                     </table>
                 </div>
@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${renderTabelaConsolidadaSimples(linhasMeta, labelRt)}
+                                    ${renderTabelaConsolidadaSimples(linhasMeta, labelRt, emptyMsg)}
                                 </tbody>
                             </table>
                         </div>
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
         `;
     }
 
-    function renderBlocoMesaComMeta(tituloMesa, linhasNormal, linhasMeta, labelRt = 'RT') {
+    function renderBlocoMesaComMeta(tituloMesa, linhasNormal, linhasMeta, labelRt = 'RT', emptyMsg = 'Nenhum limite solicitado') {
         const hasMeta = Array.isArray(linhasMeta) && linhasMeta.length > 0;
         return `
             <div class="mesa-subcard mb-3">
@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             </tr>
                         </thead>
                         <tbody>
-                            ${renderTabelaMesaSimples(linhasNormal, labelRt)}
+                            ${renderTabelaMesaSimples(linhasNormal, labelRt, emptyMsg)}
                         </tbody>
                     </table>
                 </div>
@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${renderTabelaMesaSimples(linhasMeta, labelRt + ' Meta')}
+                                    ${renderTabelaMesaSimples(linhasMeta, labelRt + ' Meta', emptyMsg)}
                                 </tbody>
                             </table>
                         </div>
@@ -229,7 +229,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalResumoMesa = document.getElementById('modalAlcadaResumoMesa');
     const modalResumoEvento = document.getElementById('modalAlcadaResumoEvento');
     const modalResumoData = document.getElementById('modalAlcadaResumoData');
-    const modalResumoRating = document.getElementById('modalAlcadaResumoRating');
+    const modalAlcadaCardRatingGrupo = document.getElementById('modalAlcadaCardRatingGrupo');
+    const modalAlcadaResumoRatingContainer = document.getElementById('modalAlcadaResumoRatingContainer');
     const modalResumoRatingVigente = document.getElementById('modalAlcadaResumoRatingVigente');
     const modalResumoShare = document.getElementById('modalAlcadaResumoShare');
 
@@ -316,22 +317,34 @@ document.addEventListener('DOMContentLoaded', function () {
                     const listaMesas = Array.from(mesasSet);
                     const temMultiplasMesas = listaMesas.length > 1;
 
-                    // 2. Preenche Resumo Superior (Topo) com estilo anterior limpo
+                    // 2. Preenche Resumo Superior (Topo)
                     if (modalResumoGrupo) modalResumoGrupo.textContent = d.dsGrupo || dsGrupo;
                     if (modalResumoMesa) modalResumoMesa.textContent = d.cdMesa || dsMesa || 'Mesa não informada';
                     if (modalResumoEvento) modalResumoEvento.textContent = d.dsTipoEvento || dsEvento;
                     if (modalResumoData) modalResumoData.textContent = dtSolicitacao ? `Solicitado em ${dtSolicitacao}` : '-';
                     
-                    // Rating do Grupo (Estilo clássico / anterior)
-                    if (modalResumoRating) {
-                        modalResumoRating.textContent = d.cdRatingGrupo || '-';
+                    // Rating do Grupo (fica vermelho e lista as mesas se houver divergência)
+                    if (d.icDivergenciaRatingGrupo) {
+                        if (modalAlcadaCardRatingGrupo) modalAlcadaCardRatingGrupo.classList.add('metric-card-danger');
+                        if (modalAlcadaResumoRatingContainer) {
+                            const listHtml = (d.ratingsGrupoPorMesa || []).map(rm => `
+                                <div>${rm.cdMesa}: ${rm.cdRating || '-'}</div>
+                            `).join('');
+                            modalAlcadaResumoRatingContainer.innerHTML = `<div class="metric-rating-divergente-list">${listHtml}</div>`;
+                        }
+                    } else {
+                        if (modalAlcadaCardRatingGrupo) modalAlcadaCardRatingGrupo.classList.remove('metric-card-danger');
+                        if (modalAlcadaResumoRatingContainer) {
+                            modalAlcadaResumoRatingContainer.innerHTML = `<span class="metric-value" id="modalAlcadaResumoRating">${d.cdRatingGrupo || '-'}</span>`;
+                        }
                     }
+
                     const ratingVigenteGrupo = d.ratingsVigentes?.ratingGrupo?.cdRating || '-';
                     if (modalResumoRatingVigente) {
                         modalResumoRatingVigente.textContent = `Vigente: ${ratingVigenteGrupo}`;
                     }
 
-                    // Share da Dívida (Estilo clássico / anterior)
+                    // Share da Dívida (Soma consolidada das mesas)
                     let shareStr = '-';
                     if (d.vlShareDividaGrupo !== null && d.vlShareDividaGrupo !== undefined) {
                         const valShare = parseFloat(d.vlShareDividaGrupo);
@@ -352,7 +365,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             'Consolidado do Grupo',
                             d.limitesGrupoConsolidadoSemMeta,
                             d.limitesGrupoConsolidadoComMeta,
-                            'RT / Multimesas'
+                            'RT'
                         );
 
                         // Visão do Grupo por Mesa
@@ -434,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                         'Consolidado Emissor',
                                         e.limitesConsolidadoSemMeta,
                                         e.limitesConsolidadoComMeta,
-                                        'RT / Multimesas'
+                                        'RT'
                                     );
 
                                     // Sub-tabelas por mesa do emissor
@@ -449,7 +462,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                             x => (x.cdMesa || '').toUpperCase() === mesaNome
                                         );
 
-                                        emissorTabelasHtml += renderBlocoMesaComMeta(mesaNome, linhasEmMesaNorm, linhasEmMesaMeta, labelColRt);
+                                        emissorTabelasHtml += renderBlocoMesaComMeta(mesaNome, linhasEmMesaNorm, linhasEmMesaMeta, labelColRt, 'Nenhum limite solicitado');
                                     });
                                 } else {
                                     // Apenas 1 mesa para o emissor
@@ -460,7 +473,43 @@ document.addEventListener('DOMContentLoaded', function () {
                                     const linhasEmNorm = e.limitesPorMesaSemMeta || e.limitesConsolidadoSemMeta || [];
                                     const linhasEmMeta = e.limitesPorMesaComMeta || e.limitesConsolidadoComMeta || [];
 
-                                    emissorTabelasHtml += renderBlocoMesaComMeta(mesaNome, linhasEmNorm, linhasEmMeta, labelColRt);
+                                    emissorTabelasHtml += renderBlocoMesaComMeta(mesaNome, linhasEmNorm, linhasEmMeta, labelColRt, 'Nenhum limite solicitado');
+                                }
+
+                                let ratingHeaderHtml = '';
+                                if (e.icDivergenciaRating) {
+                                    const listHtml = (e.ratingsPorMesa || []).map(rm => `
+                                        <div>${rm.cdMesa}: ${rm.cdRating || '-'}</div>
+                                    `).join('');
+
+                                    ratingHeaderHtml = `
+                                        <div class="emissor-header-meta flex-wrap">
+                                            <div class="emissor-rating-divergente-box">
+                                                ${listHtml}
+                                            </div>
+                                            ${ratingVigEmissor ? `<span class="emissor-meta-sub">${ratingVigEmissor}</span>` : ''}
+                                            <span class="text-muted opacity-50">|</span>
+                                            <div class="d-inline-flex align-items-center">
+                                                <span class="emissor-meta-label">Share da Dívida:</span>
+                                                <span class="emissor-meta-value">${shareEmissorStr}</span>
+                                            </div>
+                                        </div>
+                                    `;
+                                } else {
+                                    ratingHeaderHtml = `
+                                        <div class="emissor-header-meta flex-wrap">
+                                            <div class="d-inline-flex align-items-center">
+                                                <span class="emissor-meta-label">Rating:</span>
+                                                <span class="emissor-meta-value">${e.cdRatingEmissor || '-'}</span>
+                                                ${ratingVigEmissor ? `<span class="emissor-meta-sub">${ratingVigEmissor}</span>` : ''}
+                                            </div>
+                                            <span class="text-muted opacity-50">|</span>
+                                            <div class="d-inline-flex align-items-center">
+                                                <span class="emissor-meta-label">Share da Dívida:</span>
+                                                <span class="emissor-meta-value">${shareEmissorStr}</span>
+                                            </div>
+                                        </div>
+                                    `;
                                 }
 
                                 return `
@@ -470,11 +519,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                                 <i class="bi bi-building text-accent"></i>
                                                 <h6 class="modal-emissor-title mb-0">${e.dsEmissor || 'Emissor'}</h6>
                                             </div>
-                                            <div class="d-flex align-items-center gap-3 text-muted small">
-                                                <span><strong style="color: var(--color-text-main);">Rating:</strong> ${e.cdRatingEmissor || '-'} ${ratingVigEmissor}</span>
-                                                <span class="text-muted opacity-50">|</span>
-                                                <span><strong style="color: var(--color-text-main);">Share da Dívida:</strong> ${shareEmissorStr}</span>
-                                            </div>
+                                            ${ratingHeaderHtml}
                                         </div>
 
                                         ${emissorTabelasHtml}
@@ -684,8 +729,11 @@ document.addEventListener('DOMContentLoaded', function () {
                                                 <i class="bi bi-building text-accent"></i>
                                                 <h6 class="modal-emissor-title mb-0">${ve.dsEmissor || 'Emissor'}</h6>
                                             </div>
-                                            <div class="d-flex align-items-center gap-3 text-muted small">
-                                                <span><strong style="color: var(--color-text-main);">Rating Vigente:</strong> ${ratingVig}</span>
+                                            <div class="emissor-header-meta">
+                                                <div class="d-inline-flex align-items-center">
+                                                    <span class="emissor-meta-label">Rating Vigente:</span>
+                                                    <span class="emissor-meta-value">${ratingVig}</span>
+                                                </div>
                                             </div>
                                         </div>
 
