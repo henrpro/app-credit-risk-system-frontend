@@ -1007,3 +1007,61 @@ label {
   box-shadow: 0 6px 15px rgba(239, 68, 68, 0.35);
 }
 
+/*--------------------------------------------------------------
+# Universal Form & Modal Theme Controls
+--------------------------------------------------------------*/
+.form-control,
+.form-select {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-main);
+  transition: all 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--color-bg-secondary);
+  border-color: var(--color-accent);
+  color: var(--color-text-main);
+  box-shadow: 0 0 0 3px rgba(236, 112, 0, 0.15);
+}
+
+.form-control::placeholder {
+  color: var(--color-text-muted);
+  opacity: 0.7;
+}
+
+.input-group-text {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.card {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-main);
+}
+
+.modal-content {
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-main);
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modal-footer {
+  border-top: 1px solid var(--color-border);
+}
+
+[data-theme="dark"] .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+[data-theme="light"] .btn-close {
+  filter: none;
+}
+

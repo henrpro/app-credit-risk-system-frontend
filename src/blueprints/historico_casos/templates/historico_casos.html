@@ -7,11 +7,381 @@
 {% endblock %}
 
 {% block content %}
-<div class="pagetitle mb-4">
-  <h1 class="pagetitle-main">Histórico de Casos</h1>
+<!-- Cabeçalho da Página -->
+<div class="page-header-container mb-4">
+  <div class="pagetitle mb-0">
+    <h1 class="pagetitle-main">Histórico de Casos</h1>
+    <p class="pagetitle-sub text-muted mb-0">Consulte o histórico de solicitações de alçada finalizadas e decisões tomadas.</p>
+  </div>
+</div>
+
+<!-- Barra de Ferramentas / Filtros -->
+<div class="historico-tools-card">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div class="d-flex align-items-center gap-3 flex-grow-1 flex-wrap">
+      <div class="search-input-wrapper">
+        <i class="bi bi-search"></i>
+        <input type="text" id="filtroHistorico" class="form-control" placeholder="Buscar por ID, grupo, solicitante, evento, mesa ou status...">
+      </div>
+
+      <div class="status-select-wrapper" style="min-width: 180px;">
+        <select id="filtroStatus" class="form-select">
+          <option value="" selected>Todos os Status</option>
+          <option value="Aprovado">Aprovado</option>
+          <option value="Rejeitado">Rejeitado</option>
+          <option value="Cancelado">Cancelado</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <div class="count-badge-historico">
+        <i class="bi bi-archive-fill" style="color: var(--color-accent);"></i>
+        <span id="contadorCasos">{{ solicitacoes | length }}</span> caso(s) finalizado(s)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabela de Histórico de Casos -->
+<div class="historico-table-card mb-4">
+  <div class="table-responsive">
+    <table class="table historico-table align-middle" id="tabelaHistoricoCasos">
+      <thead>
+        <tr>
+          <th class="th-id text-center" style="width: 80px;">ID</th>
+          <th class="th-data" style="width: 110px;">Data</th>
+          <th class="th-grupo">Grupo Econômico</th>
+          <th class="th-evento">Evento</th>
+          <th class="th-mesa" style="width: 150px;">Mesa</th>
+          <th class="th-solicitante">Solicitante</th>
+          <th class="th-status text-center" style="width: 130px;">Status</th>
+          <th class="th-alcada text-center" style="width: 150px;">Alçada</th>
+          <th class="th-acoes text-center" style="width: 140px;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if solicitacoes and solicitacoes | length > 0 %}
+          {% for s in solicitacoes %}
+          <tr class="historico-row" 
+              data-id="{{ s.idSolicitacao }}" 
+              data-grupo="{{ s.dsGrupo or '' }}" 
+              data-nome="{{ s.dsNome or '' }}" 
+              data-profile="{{ s.dsProfile or '' }}"
+              data-evento="{{ s.dsTipoEvento or '' }}" 
+              data-status="{{ s.dsStatus or '' }}"
+              data-alcada="{{ s.dsAlcada or '' }}">
+            
+            <td class="text-center">
+              <span class="badge-id">#{{ s.idSolicitacao }}</span>
+            </td>
+            
+            <td class="text-nowrap text-muted small">
+              {{ s.dtSolicitacao or '-' }}
+            </td>
+            
+            <td>
+              <span class="entity-grupo-name">{{ s.dsGrupo or 'Não Informado' }}</span>
+            </td>
+            
+            <td>
+              <span class="badge-evento">{{ s.dsTipoEvento or '-' }}</span>
+            </td>
+            
+            <td>
+              <span class="badge-mesa">{{ s.dsProfile or '-' }}</span>
+            </td>
+            
+            <td class="text-muted">
+              {{ s.dsNome or 'Não informado' }}
+            </td>
+            
+            <td class="text-center">
+              {% if s.dsStatus == 'Aprovado' %}
+                <span class="badge-status badge-status-aprovado">
+                  <i class="bi bi-check-circle-fill me-1"></i>Aprovado
+                </span>
+              {% elif s.dsStatus == 'Rejeitado' %}
+                <span class="badge-status badge-status-rejeitado">
+                  <i class="bi bi-x-circle-fill me-1"></i>Rejeitado
+                </span>
+              {% elif s.dsStatus == 'Cancelado' %}
+                <span class="badge-status badge-status-cancelado">
+                  <i class="bi bi-slash-circle me-1"></i>Cancelado
+                </span>
+              {% else %}
+                <span class="badge-status">
+                  {{ s.dsStatus or '-' }}
+                </span>
+              {% endif %}
+            </td>
+            
+            <td class="text-center">
+              {% if s.dsAlcada %}
+                <span class="badge-alcada">
+                  <i class="bi bi-shield-check me-1"></i>{{ s.dsAlcada }}
+                </span>
+              {% else %}
+                <span class="text-muted small">-</span>
+              {% endif %}
+            </td>
+            
+            <td class="text-center">
+              <button type="button" 
+                      class="btn-ver-detalhes btn-abrir-detalhes" 
+                      data-id="{{ s.idSolicitacao }}" 
+                      data-grupo="{{ s.dsGrupo }}" 
+                      data-evento="{{ s.dsTipoEvento }}"
+                      data-status="{{ s.dsStatus }}"
+                      data-alcada="{{ s.dsAlcada or '' }}"
+                      data-mesa="{{ s.dsProfile or '' }}"
+                      data-data="{{ s.dtSolicitacao or '' }}">
+                <i class="bi bi-eye"></i>
+                <span>Ver Detalhes</span>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr id="trNenhumCaso">
+            <td colspan="9" class="text-center py-5">
+              <div class="empty-historico-state">
+                <i class="bi bi-inbox empty-icon"></i>
+                <h5>Nenhum caso finalizado encontrado</h5>
+                <p class="text-muted mb-0">Não há registros de solicitações finalizadas para a sua mesa no momento.</p>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Estado vazio quando o filtro não encontra resultados -->
+  <div id="emptyFiltroHistorico" class="empty-historico-state d-none py-5 text-center">
+    <i class="bi bi-search empty-icon"></i>
+    <h5>Nenhum resultado para os filtros aplicados</h5>
+    <p class="text-muted mb-0">Tente ajustar o termo de busca ou selecionar outro status.</p>
+  </div>
+</div>
+
+<!-- Modal: Detalhes da Solicitação -->
+<div class="modal fade" id="modalDetalhesSolicitacao" tabindex="-1" aria-labelledby="modalDetalhesTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content modal-content-custom">
+      
+      <!-- Modal Header -->
+      <div class="modal-header modal-header-custom">
+        <div class="d-flex align-items-center gap-3">
+          <div class="modal-icon-badge">
+            <i class="bi bi-file-earmark-medical"></i>
+          </div>
+          <div>
+            <h5 class="modal-title-custom mb-0" id="modalDetalhesTitle">
+              Detalhes da Solicitação <span id="modalIdSolicitacaoDisplay" class="text-accent"></span>
+            </h5>
+            <div class="modal-subtitle text-muted small" id="modalSubtituloDisplay">
+              Grupo Econômico & Limites
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body p-4 modal-body-custom">
+        
+        <!-- Spinner Loader -->
+        <div id="modalDetalhesLoader" class="text-center py-5">
+          <div class="spinner-border text-warning" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Carregando detalhes...</span>
+          </div>
+          <div class="mt-3 text-muted">Carregando informações da solicitação...</div>
+        </div>
+
+        <!-- Alerta de Erro -->
+        <div id="modalDetalhesError" class="alert alert-danger d-none my-3" role="alert">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <span id="modalDetalhesErrorMessage">Ocorreu um erro ao carregar os detalhes da solicitação.</span>
+        </div>
+
+        <!-- Conteúdo dos Detalhes (Renderizado dinamicamente) -->
+        <div id="modalDetalhesContent" class="d-none">
+          
+          <!-- Cards de Resumo Superior -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-6 col-lg-3">
+              <div class="summary-metric-card">
+                <span class="metric-label">Grupo Econômico</span>
+                <span class="metric-value text-accent" id="modalResumoGrupo">-</span>
+                <span class="metric-sub" id="modalResumoMesa">-</span>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+              <div class="summary-metric-card">
+                <span class="metric-label">Evento Solicitado</span>
+                <span class="metric-value" id="modalResumoEvento">-</span>
+                <span class="metric-sub" id="modalResumoData">-</span>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+              <div class="summary-metric-card">
+                <span class="metric-label">Rating do Grupo</span>
+                <span class="metric-value" id="modalResumoRating">-</span>
+                <span class="metric-sub">Rating Aprovado</span>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+              <div class="summary-metric-card">
+                <span class="metric-label">Share da Dívida</span>
+                <span class="metric-value" id="modalResumoShare">-</span>
+                <span class="metric-sub">Percentual do Grupo</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Seção 1: Limites Consolidados do Grupo -->
+          <div class="detail-section-card mb-4">
+            <div class="detail-section-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+              <h6 class="detail-section-title mb-0">
+                <i class="bi bi-building-gear me-2"></i>Visão Consolidada do Grupo
+              </h6>
+              <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-1 small">
+                Consolidado do Grupo
+              </span>
+            </div>
+
+            <!-- Navegação de Abas da Visão do Grupo -->
+            <ul class="nav nav-pills custom-nav-pills mb-3" id="pillsGrupoTab" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="pills-grupo-todas-tab" data-bs-toggle="pill" data-bs-target="#pills-grupo-todas" type="button" role="tab">
+                  <i class="bi bi-collection me-1"></i> Todas as Mesas
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pills-grupo-mesa-tab" data-bs-toggle="pill" data-bs-target="#pills-grupo-mesa" type="button" role="tab">
+                  <i class="bi bi-diagram-3 me-1"></i> Por Mesa
+                </button>
+              </li>
+            </ul>
+
+            <div class="tab-content" id="pillsGrupoTabContent">
+              <!-- Aba: Todas as Mesas -->
+              <div class="tab-pane fade show active" id="pills-grupo-todas" role="tabpanel">
+                <div class="table-responsive">
+                  <table class="table modal-detail-table align-middle" id="tabelaGrupoTodasMesas">
+                    <thead>
+                      <tr>
+                        <th class="th-center" style="width: 15%;">Prazo</th>
+                        <th class="th-val text-end" style="width: 28%;">Total</th>
+                        <th class="th-val text-end" style="width: 28%;">Terceiros</th>
+                        <th class="th-val text-end modal-th-rt" style="width: 29%;">Reserva Técnica</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Preenchido via JS -->
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Tabela de Limites com Meta (se houver) -->
+                <div id="containerGrupoMetaTodas" class="mt-4 d-none">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-warning-subtle text-warning border border-warning px-2 py-1">
+                      <i class="bi bi-bullseye me-1"></i>Com Limite Meta
+                    </span>
+                    <span class="text-muted small">Valores considerando os limites meta aprovados</span>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table modal-detail-table align-middle" id="tabelaGrupoTodasMesasMeta">
+                      <thead>
+                        <tr>
+                          <th class="th-center" style="width: 15%;">Prazo</th>
+                          <th class="th-val text-end" style="width: 28%;">Total Meta</th>
+                          <th class="th-val text-end" style="width: 28%;">Terceiros Meta</th>
+                          <th class="th-val text-end modal-th-rt" style="width: 29%;">Reserva Técnica Meta</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <!-- Preenchido via JS -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Aba: Por Mesa -->
+              <div class="tab-pane fade" id="pills-grupo-mesa" role="tabpanel">
+                <div class="table-responsive">
+                  <table class="table modal-detail-table align-middle" id="tabelaGrupoPorMesa">
+                    <thead>
+                      <tr>
+                        <th style="width: 25%;">Mesa</th>
+                        <th class="th-center" style="width: 15%;">Prazo</th>
+                        <th class="th-val text-end" style="width: 30%;">Terceiros</th>
+                        <th class="th-val text-end modal-th-rt" style="width: 30%;">Reserva Técnica / Multimesas</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Preenchido via JS -->
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Tabela de Limites por Mesa com Meta (se houver) -->
+                <div id="containerGrupoMetaPorMesa" class="mt-4 d-none">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-warning-subtle text-warning border border-warning px-2 py-1">
+                      <i class="bi bi-bullseye me-1"></i>Por Mesa Com Limite Meta
+                    </span>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table modal-detail-table align-middle" id="tabelaGrupoPorMesaMeta">
+                      <thead>
+                        <tr>
+                          <th style="width: 25%;">Mesa</th>
+                          <th class="th-center" style="width: 15%;">Prazo</th>
+                          <th class="th-val text-end" style="width: 30%;">Terceiros Meta</th>
+                          <th class="th-val text-end modal-th-rt" style="width: 30%;">Reserva Técnica / Multimesas</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <!-- Preenchido via JS -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Seção 2: Emissores do Grupo -->
+          <div class="mb-2">
+            <h6 class="fw-bold mb-3 d-flex align-items-center gap-2" style="color: var(--color-text-main);">
+              <i class="bi bi-building"></i> Emissores do Grupo (<span id="modalQtdEmissores">0</span>)
+            </h6>
+
+            <div id="modalEmissoresContainer">
+              <!-- Cards de Emissores preenchidos via JS -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer modal-footer-custom justify-content-end">
+        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+          <i class="bi bi-x-lg me-1"></i> Fechar
+        </button>
+      </div>
+
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{{ url_for('historico_casos.static', filename='js/historico_casos.js') }}"></script>
 {% endblock %}
+

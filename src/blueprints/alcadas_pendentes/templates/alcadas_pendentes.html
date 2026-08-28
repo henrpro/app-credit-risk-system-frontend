@@ -7,11 +7,351 @@
 {% endblock %}
 
 {% block content %}
-<div class="pagetitle mb-4">
-  <h1 class="pagetitle-main">Alçadas Pendentes</h1>
+<!-- Cabeçalho da Página -->
+<div class="page-header-container mb-4">
+  <div class="pagetitle mb-0">
+    <h1 class="pagetitle-main">Alçadas Pendentes</h1>
+  </div>
+</div>
+
+<!-- Barra de Ferramentas / Filtros -->
+<div class="alcadas-tools-card">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+    <div class="search-input-wrapper flex-grow-1">
+      <i class="bi bi-search"></i>
+      <input type="text" id="filtroAlcadas" class="form-control" placeholder="Buscar por grupo econômico, ID, solicitante, evento ou mesa...">
+    </div>
+    
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <div class="count-badge-alcadas">
+        <i class="bi bi-hourglass-split text-warning"></i>
+        <span id="contadorAlcadas">{{ alcadas | length }}</span> alçada(s) pendente(s)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabela de Alçadas Pendentes -->
+<div class="alcadas-table-card mb-4">
+  <div class="table-responsive">
+    <table class="table alcadas-table align-middle" id="tabelaAlcadasPendentes">
+      <thead>
+        <tr>
+          <th class="th-id text-center" style="width: 100px;">ID(s)</th>
+          <th class="th-data" style="width: 110px;">Data</th>
+          <th class="th-grupo">Grupo Econômico</th>
+          <th class="th-evento">Evento</th>
+          <th class="th-mesa" style="width: 160px;">Mesa(s)</th>
+          <th class="th-solicitante">Solicitante(s)</th>
+          <th class="th-status text-center" style="width: 160px;">Status</th>
+          <th class="th-acoes text-center" style="width: 150px;">Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if alcadas and alcadas | length > 0 %}
+          {% for a in alcadas %}
+          {% set id_display = a.idSolicitacao|join(', #') if a.idSolicitacao is iterable and a.idSolicitacao is not string else a.idSolicitacao %}
+          <tr class="alcada-row" 
+              data-id="{{ a.idSolicitacao }}" 
+              data-grupo="{{ a.dsGrupo or '' }}" 
+              data-nome="{{ a.dsNome or '' }}" 
+              data-mesa="{{ a.cdMesa or '' }}"
+              data-evento="{{ a.dsTipoEvento or '' }}"
+              data-data="{{ a.dtSolicitacaoFormatada or '' }}">
+            
+            <td class="text-center">
+              #{{ id_display }}
+            </td>
+            
+            <td>
+              {{ a.dtSolicitacaoFormatada or '-' }}
+            </td>
+            
+            <td>
+              {{ a.dsGrupo or 'Não Informado' }}
+            </td>
+            
+            <td>
+              {{ a.dsTipoEvento or '-' }}
+            </td>
+            
+            <td>
+              {{ a.cdMesa or '-' }}
+            </td>
+            
+            <td>
+              {{ a.dsNome or 'Não informado' }}
+            </td>
+            
+            <td class="text-center">
+              Alçada Pendente
+            </td>
+            
+            <td class="text-center">
+              <button type="button" 
+                      class="btn-ver-detalhes btn-abrir-detalhes-alcada" 
+                      data-id="{{ a.idSolicitacao }}" 
+                      data-grupo="{{ a.dsGrupo }}" 
+                      data-evento="{{ a.dsTipoEvento }}"
+                      data-mesa="{{ a.cdMesa or '' }}"
+                      data-data="{{ a.dtSolicitacaoFormatada or '' }}">
+                <i class="bi bi-eye"></i>
+                <span>Ver Detalhes</span>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr id="trNenhumaAlcada">
+            <td colspan="8" class="text-center py-5">
+              <div class="empty-alcadas-state">
+                <i class="bi bi-check2-circle empty-icon text-success"></i>
+                <h5>Nenhuma alçada pendente</h5>
+                <p class="text-muted mb-0">Todas as solicitações de alçada foram deliberadas ou não há pendências no momento.</p>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Estado vazio quando o filtro não encontra resultados -->
+  <div id="emptyFiltroAlcadas" class="empty-alcadas-state d-none py-5 text-center">
+    <i class="bi bi-search empty-icon"></i>
+    <h5>Nenhum resultado para os filtros aplicados</h5>
+    <p class="text-muted mb-0">Tente buscar por outro termo ou grupo econômico.</p>
+  </div>
+</div>
+
+<!-- Modal: Detalhes e Deliberação de Alçada -->
+<div class="modal fade" id="modalDetalhesAlcada" tabindex="-1" aria-labelledby="modalAlcadaTitle" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content modal-content-custom">
+      
+      <!-- Modal Header -->
+      <div class="modal-header modal-header-custom">
+        <div class="d-flex align-items-center gap-3">
+          <div class="modal-icon-badge">
+            <i class="bi bi-shield-check"></i>
+          </div>
+          <div>
+            <h5 class="modal-title-custom mb-0" id="modalAlcadaTitle">
+              Alçada de Crédito <span id="modalIdAlcadaDisplay" class="text-accent"></span>
+            </h5>
+            <div class="modal-subtitle text-muted small" id="modalAlcadaSubtituloDisplay">
+              Análise e Definição de Alçada
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body p-4 modal-body-custom">
+        
+        <!-- Spinner Loader -->
+        <div id="modalAlcadaLoader" class="text-center py-5">
+          <div class="spinner-border text-warning" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Carregando detalhes...</span>
+          </div>
+          <div class="mt-3 text-muted">Buscando limites e informações da solicitação...</div>
+        </div>
+
+        <!-- Alerta de Erro -->
+        <div id="modalAlcadaError" class="alert alert-danger d-none my-3" role="alert">
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          <span id="modalAlcadaErrorMessage">Ocorreu um erro ao carregar os detalhes da solicitação.</span>
+        </div>
+
+        <!-- Conteúdo dos Detalhes (Renderizado dinamicamente) -->
+        <div id="modalAlcadaContent" class="d-none">
+          
+          <!-- Cards de Resumo Superior -->
+          <div class="row g-3 mb-4">
+            <div class="col-md-6 col-lg-3">
+              <div class="summary-metric-card">
+                <span class="metric-label">Grupo Econômico</span>
+                <span class="metric-value text-accent" id="modalAlcadaResumoGrupo">-</span>
+                <span class="metric-sub" id="modalAlcadaResumoMesa">-</span>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+              <div class="summary-metric-card">
+                <span class="metric-label">Evento Solicitado</span>
+                <span class="metric-value" id="modalAlcadaResumoEvento">-</span>
+                <span class="metric-sub" id="modalAlcadaResumoData">-</span>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+              <div class="summary-metric-card">
+                <span class="metric-label">Rating do Grupo</span>
+                <span class="metric-value" id="modalAlcadaResumoRating">-</span>
+                <span class="metric-sub" id="modalAlcadaResumoRatingVigente">Vigente: -</span>
+              </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+              <div class="summary-metric-card">
+                <span class="metric-label">Share da Dívida</span>
+                <span class="metric-value" id="modalAlcadaResumoShare">-</span>
+                <span class="metric-sub">Percentual do Grupo</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Navegação de Abas do Modal -->
+          <ul class="nav nav-pills custom-nav-pills mb-4" id="pillsModalAlcadaTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link active" id="tab-modal-solicitacao" data-bs-toggle="pill" data-bs-target="#pane-modal-solicitacao" type="button" role="tab">
+                <i class="bi bi-file-earmark-text me-1"></i> Dados da Solicitação
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="tab-modal-vigentes" data-bs-toggle="pill" data-bs-target="#pane-modal-vigentes" type="button" role="tab">
+                <i class="bi bi-clock-history me-1"></i> Limites Vigentes
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content" id="pillsModalAlcadaContent">
+            <!-- TAB 1: Dados da Solicitação -->
+            <div class="tab-pane fade show active" id="pane-modal-solicitacao" role="tabpanel">
+              <!-- Seção 1: Limites do Grupo Solicitado -->
+              <div id="modalAlcadaGrupoContainer" class="mb-4">
+                <!-- Preenchido via JS (Consolidado do Grupo + Mesas ou Apenas Mesa Única) -->
+              </div>
+
+              <!-- Seção 2: Emissores do Grupo Solicitado -->
+              <div class="mb-4" id="modalAlcadaEmissoresSection">
+                <h5 class="detail-section-title mb-3" style="color: var(--color-text-main);">
+                  <i class="bi bi-building me-2 text-accent"></i>Emissores do Grupo (<span id="modalAlcadaQtdEmissores">0</span>)
+                </h5>
+                <div id="modalAlcadaEmissoresContainer">
+                  <!-- Cards de Emissores preenchidos via JS -->
+                </div>
+              </div>
+
+              <!-- Seção 3: Deliberação da Alçada (Ação Principal) -->
+              <div class="deliberacao-card p-4">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <i class="bi bi-award-fill text-accent fs-4"></i>
+                  <h5 class="fw-bold mb-0" style="color: var(--color-text-main);">Definição da Alçada de Aprovação</h5>
+                </div>
+                <p class="text-muted small mb-3">Selecione o órgão / comitê responsável por deliberar sobre esta solicitação de alçada:</p>
+
+                <form id="formResponderAlcada" class="needs-validation">
+                  <input type="hidden" id="inputAlcadaIdSolicitacao" name="idSolicitacao" value="">
+
+                  <div class="row g-3 mb-4">
+                    <!-- Opção 1: Mesa de Gestão -->
+                    <div class="col-md-4">
+                      <label class="alcada-option-card" for="radioAlcadaGestao">
+                        <input type="radio" name="dsAlcada" id="radioAlcadaGestao" value="Mesa de Gestão" class="form-check-input d-none">
+                        <div class="alcada-option-content">
+                          <div class="alcada-option-icon">
+                            <i class="bi bi-person-gear"></i>
+                          </div>
+                          <div class="alcada-option-info">
+                            <div class="alcada-option-title">Mesa de Gestão</div>
+                            <div class="alcada-option-desc">Mesa de Gestão</div>
+                          </div>
+                          <div class="alcada-option-check">
+                            <i class="bi bi-check2-circle"></i>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+
+                    <!-- Opção 2: Comitê de Crédito IAM -->
+                    <div class="col-md-4">
+                      <label class="alcada-option-card" for="radioAlcadaIAM">
+                        <input type="radio" name="dsAlcada" id="radioAlcadaIAM" value="Comitê de Crédito IAM" class="form-check-input d-none">
+                        <div class="alcada-option-content">
+                          <div class="alcada-option-icon">
+                            <i class="bi bi-bank"></i>
+                          </div>
+                          <div class="alcada-option-info">
+                            <div class="alcada-option-title">Comitê de Crédito IAM</div>
+                            <div class="alcada-option-desc">Comitê de Crédito IAM</div>
+                          </div>
+                          <div class="alcada-option-check">
+                            <i class="bi bi-check2-circle"></i>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+
+                    <!-- Opção 3: Comitê Superior de Crédito -->
+                    <div class="col-md-4">
+                      <label class="alcada-option-card" for="radioAlcadaCSC">
+                        <input type="radio" name="dsAlcada" id="radioAlcadaCSC" value="Comitê Superior de Crédito" class="form-check-input d-none">
+                        <div class="alcada-option-content">
+                          <div class="alcada-option-icon">
+                            <i class="bi bi-award"></i>
+                          </div>
+                          <div class="alcada-option-info">
+                            <div class="alcada-option-title">Comitê Superior de Crédito</div>
+                            <div class="alcada-option-desc">Comitê Superior de Crédito (CSC)</div>
+                          </div>
+                          <div class="alcada-option-check">
+                            <i class="bi bi-check2-circle"></i>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  <!-- Botão de Envio de Resposta -->
+                  <div class="d-flex justify-content-end align-items-center gap-3">
+                    <span id="alcadaSelectionAlert" class="text-warning small d-none">
+                      <i class="bi bi-info-circle me-1"></i>Selecione uma alçada antes de confirmar.
+                    </span>
+                    <button type="submit" class="btn-confirmar-alcada" id="btnConfirmarAlcada" disabled>
+                      <i class="bi bi-send-check-fill me-1"></i> Confirmar e Enviar Alçada
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- TAB 2: Limites Vigentes -->
+            <div class="tab-pane fade" id="pane-modal-vigentes" role="tabpanel">
+              <!-- Seção 1: Limites do Grupo Vigente -->
+              <div id="modalAlcadaGrupoVigenteContainer" class="mb-4">
+                <!-- Preenchido via JS -->
+              </div>
+
+              <!-- Seção 2: Emissores Vigentes -->
+              <div class="mb-4" id="modalAlcadaEmissoresVigentesSection">
+                <h5 class="detail-section-title mb-3" style="color: var(--color-text-main);">
+                  <i class="bi bi-building me-2 text-accent"></i>Emissores Vigentes (<span id="modalAlcadaQtdEmissoresVigentes">0</span>)
+                </h5>
+                <div id="modalAlcadaEmissoresVigentesContainer">
+                  <!-- Preenchido via JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="modal-footer modal-footer-custom justify-content-between">
+        <span class="text-muted small">
+          <i class="bi bi-shield-lock me-1"></i> Ação auditada pelo Credit Risk System
+        </span>
+        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">
+          <i class="bi bi-x-lg me-1"></i> Fechar
+        </button>
+      </div>
+
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="{{ url_for('alcadas_pendentes.static', filename='js/alcadas_pendentes.js') }}"></script>
 {% endblock %}
+

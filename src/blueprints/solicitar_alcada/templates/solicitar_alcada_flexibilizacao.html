@@ -171,9 +171,9 @@
           <div class="col-md-4">
             <div class="indicator-field-group">
               <label class="indicator-field-label" for="ratingProp_{{ emissor_idx }}">
-                Rating Proposto <span class="text-danger">*</span>
+                Rating Proposto <span class="rating-required-star text-danger d-none">*</span>
               </label>
-              <select class="form-select form-select-sm select-indicator select-rating-proposto-emissor" id="ratingProp_{{ emissor_idx }}" name="emissores[{{ emissor_idx }}][cdRatingProposto]" required>
+              <select class="form-select form-select-sm select-indicator select-rating-proposto-emissor" id="ratingProp_{{ emissor_idx }}" name="emissores[{{ emissor_idx }}][cdRatingProposto]">
                 <option value="">Selecione...</option>
                 {% for r in ratings_cadastrados %}
                   {% set r_cod = r.cdRating if r.cdRating is defined else r %}

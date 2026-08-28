@@ -437,10 +437,36 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function updateEmissoresRatingRequirement() {
+        if (isRatingOnly || isRatingRunoff) return;
+
+        const cards = formSalvar.querySelectorAll('.emissor-card');
+        cards.forEach(card => {
+            const rows = card.querySelectorAll('.emissor-table-row');
+            const hasMeta = card.metaData && Array.isArray(card.metaData.rows) && card.metaData.rows.length > 0;
+            const temLinhasOuMeta = rows.length > 0 || hasMeta;
+
+            const selectRating = card.querySelector('.select-rating-proposto-emissor');
+            const starRating = card.querySelector('.rating-required-star');
+
+            if (selectRating) {
+                if (temLinhasOuMeta) {
+                    selectRating.required = true;
+                    if (starRating) starRating.classList.remove('d-none');
+                } else {
+                    selectRating.required = false;
+                    selectRating.classList.remove('is-invalid');
+                    if (starRating) starRating.classList.add('d-none');
+                }
+            }
+        });
+    }
+
     function recalculateAll() {
         const rows = formSalvar.querySelectorAll('.emissor-table-row');
         rows.forEach(row => updateEmissorRow(row));
         updateConsolidadoGrupo();
+        updateEmissoresRatingRequirement();
     }
 
     // -------------------------------------------------------------------------
@@ -525,13 +551,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const btnRemove = row.querySelector('.btn-remove-row');
         if (btnRemove) {
             btnRemove.addEventListener('click', function () {
-                const tbody = row.closest('tbody');
                 row.remove();
-                if (tbody && tbody.querySelectorAll('tr').length === 0 && isAbertura) {
-                    const card = tbody.closest('.emissor-card');
-                    const emissorIdx = card ? card.dataset.emissorIndex : 0;
-                    tbody.appendChild(createEmissorTableRow(emissorIdx));
-                }
                 recalculateAll();
             });
         }
@@ -767,14 +787,41 @@ document.addEventListener('DOMContentLoaded', function () {
         let hasError = false;
         let errorMessage = '';
 
+        // Atualiza requisitos de campos dinâmicos antes de validar
+        updateEmissoresRatingRequirement();
+
         // 1. Validação padrão HTML5
         if (!formSalvar.checkValidity()) {
             hasError = true;
             errorMessage = 'Por favor, preencha todos os campos obrigatórios (*) destacados no formulário.';
         }
 
-        // 2. Validação de Prazos Duplicados dentro do mesmo emissor
+        // 2. Validação condicional de Rating por emissor
         const emissorCards = formSalvar.querySelectorAll('.emissor-card');
+        if (!isRatingOnly && !isRatingRunoff) {
+            emissorCards.forEach(card => {
+                const rows = card.querySelectorAll('.emissor-table-row');
+                const hasMeta = card.metaData && Array.isArray(card.metaData.rows) && card.metaData.rows.length > 0;
+                const selectRating = card.querySelector('.select-rating-proposto-emissor');
+                const emissorNome = card.dataset.emissorNome || 'Emissor';
+
+                if (rows.length > 0 || hasMeta) {
+                    if (!selectRating || !selectRating.value || selectRating.value.trim() === '') {
+                        hasError = true;
+                        if (selectRating) selectRating.classList.add('is-invalid');
+                        if (!errorMessage) {
+                            errorMessage = `Por favor, selecione o Rating Proposto para o emissor "${emissorNome}".`;
+                        }
+                    } else if (selectRating) {
+                        selectRating.classList.remove('is-invalid');
+                    }
+                } else if (selectRating) {
+                    selectRating.classList.remove('is-invalid');
+                }
+            });
+        }
+
+        // 3. Validação de Prazos Duplicados dentro do mesmo emissor
         emissorCards.forEach(card => {
             const prazos = [];
             const rows = card.querySelectorAll('.emissor-table-row');
